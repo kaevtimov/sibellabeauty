@@ -1,0 +1,97 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'com.google.gms.google-services'
+}
+
+android {
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.example.sibellabeauty"
+        minSdk 26
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
+    }
+
+    buildFeatures {
+        compose true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.2.0"
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    namespace 'com.example.sibellabeauty'
+}
+
+dependencies {
+
+    implementation platform('com.google.firebase:firebase-bom:30.3.2')
+    implementation 'com.google.firebase:firebase-database-ktx'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.1"
+
+    implementation "androidx.core:core-ktx:1.9.0"
+    implementation 'androidx.appcompat:appcompat:1.5.0'
+    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    testImplementation 'junit:junit:4.+'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    implementation "androidx.compose.material3:material3:1.0.0-beta01"
+    implementation "androidx.compose.material3:material3-window-size-class:1.0.0-beta01"
+
+    // Jetpack Compose
+    implementation("androidx.compose.ui:ui:1.2.1")
+    // Tooling support (Previews, etc.)
+    implementation("androidx.compose.ui:ui-tooling:1.2.1")
+    // Foundation (Border, Background, Box, Image, Scroll, shapes, animations, etc.)
+    implementation("androidx.compose.foundation:foundation:1.2.1")
+    // Material Design
+    implementation("androidx.compose.material:material:1.2.1")
+    // Material design icons
+    implementation("androidx.compose.material:material-icons-core:1.2.1")
+    implementation("androidx.compose.material:material-icons-extended:1.2.1")
+    // Integration with observables
+    implementation("androidx.compose.runtime:runtime-livedata:1.2.1")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.5.1")
+    // UI Tests
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.2.1")
+    // Activity
+    implementation("androidx.activity:activity-compose:1.5.1")
+
+    implementation("androidx.room:room-runtime:2.4.3")
+    kapt("androidx.room:room-compiler:2.4.3")
+
+    // optional - Kotlin Extensions and Coroutines support for Room
+    implementation("androidx.room:room-ktx:2.4.3")
+
+    implementation("androidx.fragment:fragment-ktx:1.5.2")
+    implementation("androidx.activity:activity-ktx:1.5.1")
+    implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
+    implementation "com.google.code.gson:gson:2.8.9"
+    implementation "androidx.preference:preference-ktx:1.2.0"
+
+}
