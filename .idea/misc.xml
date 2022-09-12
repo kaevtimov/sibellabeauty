@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic__634044929red_rose_vector_sketch.xml" value="0.23703703703703705" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic__636028341flower_image_clip_art.xml" value="0.23703703703703705" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_baseline_add_reaction_24.xml" value="0.1105" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_baseline_content_cut_24.xml" value="0.1195" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_baseline_logout_24.xml" value="0.18" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_baseline_man_24.xml" value="0.23703703703703705" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_baseline_person_add_24.xml" value="0.132" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_baseline_vpn_key_24.xml" value="0.23703703703703705" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_hairstyle.xml" value="0.1195" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_hairstyle_2.xml" value="0.1195" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_hairstyle_3.xml" value="0.1195" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_rose_login.xml" value="0.23703703703703705" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/drawable/ic_round_airline_seat_recline_normal_24.xml" value="0.1105" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.1195" />
+        <entry key="..\:/Users/kristiyan.evtimov.SCALEFOCUS/Desktop/SibellaBeuty/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" value="0.1195" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>

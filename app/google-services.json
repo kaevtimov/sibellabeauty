@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "894174177449",
+    "project_id": "sibellabeauty",
+    "storage_bucket": "sibellabeauty.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:894174177449:android:e5857c6d3c5174509ee1b8",
+        "android_client_info": {
+          "package_name": "com.example.sibellabeauty"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "894174177449-k25kgtr97aaccbul8ak8a50jmff84bd6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDiGUpamOXCzkE5b6zGHyBL_Ux36M-OhU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "894174177449-k25kgtr97aaccbul8ak8a50jmff84bd6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
