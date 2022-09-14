@@ -2,6 +2,8 @@ package com.example.sibellabeauty.utils
 
 import android.view.MotionEvent
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Text
@@ -19,6 +21,7 @@ import androidx.compose.ui.semantics.Role.Companion.Button
 import androidx.compose.ui.text.input.KeyboardType.Companion.Text
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 @Composable
 fun Pulsating(modifier: Modifier, pulseFraction: Float = 1.2f, content: @Composable () -> Unit) {
@@ -38,24 +41,31 @@ fun Pulsating(modifier: Modifier, pulseFraction: Float = 1.2f, content: @Composa
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun EnlargingWidget(content: @Composable() () -> Unit) {
+fun EnlargingWidget(content: @Composable() () -> Unit, onLongClick: () -> Unit) {
     val selected = remember { mutableStateOf(false) }
-    val scale = animateFloatAsState(if (selected.value) 2f else 1f)
+    val scale = animateFloatAsState(if (selected.value) 1.1f else 1f)
 
     Box(
         modifier = Modifier
+            .combinedClickable(
+                onClick = { },
+                onLongClick = { onLongClick() },
+            )
             .scale(scale.value)
             .wrapContentWidth()
             .wrapContentHeight()
             .pointerInteropFilter {
                 when (it.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        selected.value = true }
+                        selected.value = true
+
+                    }
 
                     MotionEvent.ACTION_UP  -> {
-                        selected.value = false }
+                        selected.value = false
+                    }
 
                 }
                 true

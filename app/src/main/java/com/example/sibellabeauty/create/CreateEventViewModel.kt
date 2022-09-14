@@ -5,8 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sibellabeauty.Constants
+import com.example.sibellabeauty.Constants.LOCAL_DATE_FORMATTER
+import com.example.sibellabeauty.Constants.LOCAL_DATE_TIME_FORMATTER
+import com.example.sibellabeauty.Constants.LOCAL_TIME_FORMATTER
 import com.example.sibellabeauty.dashboard.EventFb
 import com.example.sibellabeauty.dashboard.IEventRepository
+import com.example.sibellabeauty.data.FirebaseResponse
 import com.example.sibellabeauty.data.SharedPrefsManager
 import com.example.sibellabeauty.login.UserFb
 import com.google.gson.Gson
@@ -22,6 +26,7 @@ import java.util.*
 
 class CreateEventViewModel(private val repository: IEventRepository) : ViewModel() {
 
+    var addEventOutcome = mutableStateOf<FirebaseResponse<String>?>(null)
     var clientName = mutableStateOf("")
     var procedureName = mutableStateOf("")
     var enableCreateButton = mutableStateOf(false)
@@ -29,9 +34,9 @@ class CreateEventViewModel(private val repository: IEventRepository) : ViewModel
     val procedureDurations = Constants.procedureDurations
     var duration = mutableStateOf(procedureDurations.keys.toList()[0])
     val selectedEventTimeUi: MutableState<String>
-        get() = mutableStateOf(selectedEventDate.value.format(DateTimeFormatter.ofPattern("HH:mm")))
+        get() = mutableStateOf(selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_TIME_FORMATTER)))
     val selectedEventDateUi: MutableState<String>
-        get() = mutableStateOf(selectedEventDate.value.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")))
+        get() = mutableStateOf(selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_DATE_FORMATTER)))
 
     fun setClientName(name: String) {
         clientName.value = name
@@ -56,31 +61,38 @@ class CreateEventViewModel(private val repository: IEventRepository) : ViewModel
     }
 
     fun createEvent() {
+        addEventOutcome.value = FirebaseResponse.Loading
+        val eventToAdd = EventFb(
+            name = clientName.value,
+            date = selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_DATE_TIME_FORMATTER)),
+            duration = procedureDurations[duration.value],
+            procedure = procedureName.value,
+            timeLapseString = formatTimeLapse(),
+            user = Gson().fromJson<UserFb>(
+                SharedPrefsManager.getLoggedInUser(),
+                object : TypeToken<UserFb?>() {}.type
+            ).username ?: ""
+        )
         viewModelScope.launch {
-            withContext(Dispatchers.Default) {
-                repository.addEvent(
-                    EventFb(
-                        name = clientName.value,
-                        date = selectedEventDate.value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                        duration = procedureDurations[duration.value],
-                        procedure = procedureName.value,
-                        timeLapseString = formatTimeLapse(),
-                        user = Gson().fromJson<UserFb>(
-                            SharedPrefsManager.getLoggedInUser(),
-                            object : TypeToken<UserFb?>() {}.type
-                        ).username ?: ""
-                    )
-                )
+            val slotAvailable = withContext(Dispatchers.Default) {
+                repository.checkEventSlotAvailability(eventToAdd)
             }
+            if (!slotAvailable) {
+                addEventOutcome.value = FirebaseResponse.Error("Please select another date or time.")
+                return@launch
+            }
+            val response = withContext(Dispatchers.Default) {
+                repository.addEvent(eventToAdd)
+            }
+            addEventOutcome.value = response
         }
     }
 
     private fun formatTimeLapse(): String {
-        val end =
-            selectedEventDate.value.plus(procedureDurations[duration.value]!!, ChronoUnit.MILLIS)
-        return "${selectedEventDate.value.format(DateTimeFormatter.ofPattern("HH:mm"))}-${
+        val end = selectedEventDate.value.plus(procedureDurations[duration.value]!!, ChronoUnit.MILLIS)
+        return "${selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_TIME_FORMATTER))}-${
             end.format(
-                DateTimeFormatter.ofPattern("HH:mm")
+                DateTimeFormatter.ofPattern(LOCAL_TIME_FORMATTER)
             )
         }"
     }

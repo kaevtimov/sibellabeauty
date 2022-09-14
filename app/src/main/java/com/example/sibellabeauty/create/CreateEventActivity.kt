@@ -4,6 +4,7 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
 import android.widget.DatePicker
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -23,8 +25,10 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.example.sibellabeauty.R
 import com.example.sibellabeauty.SibellaBeautyApplication
+import com.example.sibellabeauty.data.FirebaseResponse
 import com.example.sibellabeauty.theme.AppTheme
 import com.example.sibellabeauty.viewModelFactory
+import com.example.sibellabeauty.widgets.LoadingWidget
 import java.time.LocalDate
 
 class CreateEventActivity : AppCompatActivity() {
@@ -46,12 +50,15 @@ class CreateEventActivity : AppCompatActivity() {
 
     @Composable
     fun CreateEventScreen() {
+        addEventOutcome()
+
         ConstraintLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF8DEB8))
         ) {
-            val (input, date, time, duration, button) = createRefs()
+            val (loading, input, date, time, duration, button) = createRefs()
+
             ClientProcedureInput(modifier = Modifier.constrainAs(input) {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
@@ -78,6 +85,14 @@ class CreateEventActivity : AppCompatActivity() {
                 top.linkTo(duration.bottom, 24.dp)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
+            })
+            LoadingScreen(modifier = Modifier.constrainAs(loading) {
+                top.linkTo(parent.top)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                bottom.linkTo(parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
             })
         }
     }
@@ -140,7 +155,7 @@ class CreateEventActivity : AppCompatActivity() {
         Button(
             modifier = modifier.padding(40.dp),
             onClick = {
-                tryToCreate()
+                viewModel.createEvent()
             },
             shape = RoundedCornerShape(20.dp),
             enabled = enabled.value
@@ -154,14 +169,20 @@ class CreateEventActivity : AppCompatActivity() {
         val selectedEventDate = viewModel.selectedEventDateUi.value
 
         Box(
-            contentAlignment = Alignment.Center, modifier = modifier.wrapContentHeight().padding(horizontal = 24.dp)
+            contentAlignment = Alignment.Center, modifier = modifier
+                .wrapContentHeight()
+                .padding(horizontal = 24.dp)
         ) {
             ExtendedFloatingActionButton(
-                modifier = Modifier.fillMaxWidth().height(75.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(75.dp),
                 onClick = { openDatePicker() },
                 icon = {
                     Icon(
-                        modifier = Modifier.width(55.dp).height(55.dp),
+                        modifier = Modifier
+                            .width(55.dp)
+                            .height(55.dp),
                         painter = painterResource(id = R.drawable.ic_baseline_calendar_month_24),
                         contentDescription = "Date calendar",
                         tint = Color.White
@@ -174,19 +195,33 @@ class CreateEventActivity : AppCompatActivity() {
     }
 
     @Composable
+    fun LoadingScreen(modifier: Modifier = Modifier) {
+        val loading = viewModel.addEventOutcome.value is FirebaseResponse.Loading
+        if (loading) {
+            LoadingWidget(modifier = modifier)
+        }
+    }
+
+    @Composable
     fun TimePickerEvent(modifier: Modifier = Modifier) {
         val selectedEventTime = viewModel.selectedEventTimeUi.value
 
         Box(
             contentAlignment = Alignment.Center,
-            modifier = modifier.wrapContentHeight().padding(horizontal = 24.dp)
+            modifier = modifier
+                .wrapContentHeight()
+                .padding(horizontal = 24.dp)
         ) {
             ExtendedFloatingActionButton(
-                modifier = Modifier.fillMaxWidth().height(75.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(75.dp),
                 onClick = { openTimePicker() },
                 icon = {
                     Icon(
-                        modifier = Modifier.width(55.dp).height(55.dp),
+                        modifier = Modifier
+                            .width(55.dp)
+                            .height(55.dp),
                         painter = painterResource(id = R.drawable.ic_baseline_access_time_24),
                         contentDescription = "Time calendar",
                         tint = Color.White
@@ -271,12 +306,30 @@ class CreateEventActivity : AppCompatActivity() {
                 viewModel.setSelectedDate(mYear, mMonth, mDayOfMonth)
             }, currentDate.year, currentDate.monthValue - 1, currentDate.dayOfMonth
         )
+        dialog.datePicker.minDate = System.currentTimeMillis() - 1000
 
         dialog.show()
     }
 
-    private fun tryToCreate() {
-        viewModel.createEvent()
-        finish()
+    private fun addEventOutcome() {
+        val message = viewModel.addEventOutcome
+
+        when (message.value) {
+            is FirebaseResponse.Error -> Toast.makeText(
+                this,
+                (message.value as FirebaseResponse.Error).message,
+                Toast.LENGTH_SHORT
+            ).show()
+            is FirebaseResponse.Success -> {
+                Toast.makeText(
+                    this,
+                    (message.value as FirebaseResponse.Success).data,
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
+            }
+            else -> {/* show loading */
+            }
+        }
     }
 }

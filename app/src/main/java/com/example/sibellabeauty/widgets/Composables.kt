@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -56,6 +57,17 @@ fun LogoWithTitle(modifier: Modifier = Modifier, expanded: Boolean = true, title
             fontWeight = FontWeight.Bold,
             fontSize = 40.sp,
             fontFamily = FontFamily.Serif
+        )
+    }
+}
+
+@Composable
+fun LoadingWidget(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.background(Color(0x669C9C9E)), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(
+            color = Color.Yellow,
+            modifier = Modifier.size(75.dp),
+            strokeWidth = 6.dp
         )
     }
 }

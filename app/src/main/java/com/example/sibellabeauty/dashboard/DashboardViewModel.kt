@@ -1,9 +1,7 @@
 package com.example.sibellabeauty.dashboard
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sibellabeauty.SibellaBeautyApplication
 import com.example.sibellabeauty.data.FirebaseResponse
 import com.example.sibellabeauty.login.UserFb
 import com.example.sibellabeauty.splash.IUserRepository
@@ -17,10 +15,11 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 data class DashboardUiState(
-    var events: List<EventFb> = emptyList(),
+    var events: ArrayList<EventFb> = ArrayList(),
     var selectedDate: String = LocalDate.now().toString(),
     var loggedInUser: UserFb? = null,
-    var errorMessage: String? = null
+    var message: String? = null,
+    val isLoading: Boolean? = false
 )
 
 private const val ONE_DAY_IN_MILLIS = 1L
@@ -60,7 +59,7 @@ class DashboardViewModel(
                 }
             } else {
                 _uiState.update {
-                    it.copy(errorMessage = "Error logout.")
+                    it.copy(message = "Error logout.")
                 }
             }
         }
@@ -74,13 +73,28 @@ class DashboardViewModel(
     }
 
     fun getEventsByDate() {
+        _uiState.update {
+            it.copy(isLoading = true)
+        }
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val events = eventRepository.getEventsByDate(_uiState.value.selectedDate)
 
                 _uiState.update {
-                    it.copy(events = events + events + events + events + events + events + events)
+                    it.copy(events = events, isLoading = false)
                 }
+            }
+        }
+    }
+
+    fun removeEvent(event: EventFb) {
+        viewModelScope.launch {
+            val response = withContext(Dispatchers.IO) {
+                eventRepository.removeEvent(event)
+            }
+            getEventsByDate()
+            _uiState.update {
+                it.copy(message = (response as? FirebaseResponse.Success)?.data ?: "Error removing event.")
             }
         }
     }
