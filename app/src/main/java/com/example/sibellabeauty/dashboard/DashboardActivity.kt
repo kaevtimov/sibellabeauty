@@ -10,8 +10,11 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,17 +41,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role.Companion.Image
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.constraintlayout.compose.Dimension
 import com.example.sibellabeauty.create.CreateEventActivity
 import com.example.sibellabeauty.data.FirebaseResponse
 import com.example.sibellabeauty.login.LoginActivity
 import com.example.sibellabeauty.utils.EnlargingWidget
 import com.example.sibellabeauty.utils.Pulsating
+import com.example.sibellabeauty.widgets.EditEventContent
 import com.example.sibellabeauty.widgets.LoadingWidget
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -92,7 +99,7 @@ class DashboardActivity : AppCompatActivity() {
                 .fillMaxSize()
                 .background(Color(0xFFffbc9c))
         ) {
-            val (loading, topDateNav, events, addEventBtn, logoutBtn) = createRefs()
+            val (loading, topDateNav, events, addEventBtn, logoutBtn, editDialog) = createRefs()
 
             TopDayNavigation(
                 date = uiState.selectedDate,
@@ -150,6 +157,14 @@ class DashboardActivity : AppCompatActivity() {
                 width = Dimension.fillToConstraints
                 height = Dimension.fillToConstraints
             })
+            EditDialog(modifier = Modifier.constrainAs(editDialog) {
+                top.linkTo(parent.top)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                bottom.linkTo(parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
+            })
         }
     }
 
@@ -199,7 +214,12 @@ class DashboardActivity : AppCompatActivity() {
             ExtendedFloatingActionButton(
                 modifier = Modifier
                     .wrapContentWidth()
-                    .height(60.dp),
+                    .height(60.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = { editEvent(null) }
+                        )
+                    },
                 onClick = { openDatePicker() },
                 icon = {
                     Icon(
@@ -289,97 +309,127 @@ class DashboardActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun EventListItem(event: EventFb, dismissState: DismissState) {
-        EnlargingWidget(content =  {
-            Card(
-                elevation = animateDpAsState(
-                    if (dismissState.dismissDirection != null) 8.dp else 6.dp
-                ).value,
-                modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                backgroundColor = Color(0xFFF8F8F8),
-                shape = RoundedCornerShape(corner = CornerSize(16.dp))
-            ){
-                ConstraintLayout(modifier = Modifier.fillMaxWidth()) {
-                    val (image, eventDescription, time) = createRefs()
+    fun EditDialog(modifier: Modifier = Modifier) {
+        val editUiState = viewModel.uiState.collectAsState().value.editDialogUiState ?: return
 
-                    FloatingActionButton(
-                        modifier = Modifier
-                            .size(70.dp)
-                            .constrainAs(image) {
-                                this.start.linkTo(parent.start, 12.dp)
-                                bottom.linkTo(parent.bottom, 12.dp)
-                                top.linkTo(parent.top, 12.dp)
-                            },
-                        onClick = { },
-                        backgroundColor = Color(0xFF4B4185)
-                    ) {
-                        Icon(
-                            painterResource(id = R.drawable.ic_baseline_content_cut_24),
-                            contentDescription = "Scissors",
-                            tint = Color(0xFFffbc9c)
-                        )
-                    }
-                    Column(
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.Start,
-                        modifier = Modifier
-                            .constrainAs(eventDescription) {
-                                this.start.linkTo(image.end, 12.dp)
-                                bottom.linkTo(parent.bottom, 12.dp)
-                                top.linkTo(parent.top, 12.dp)
-                                end.linkTo(time.start, 8.dp)
-                                height = Dimension.fillToConstraints
-                                width = Dimension.fillToConstraints
-                            }) {
-                        Text(
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                            text = "Name: ${event.name}",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                            text = "Procedure: ${event.procedure}",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Row(modifier = Modifier
-                        .constrainAs(time) {
-                            this.start.linkTo(eventDescription.end)
-                            bottom.linkTo(parent.bottom)
-                            top.linkTo(parent.top)
-                            end.linkTo(parent.end)
-                            height = Dimension.fillToConstraints
-                            width = Dimension.wrapContent
-                        }
-                        .background(Color(0xFFffbc9c)),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 6.dp),
-                            text = "${event.timeLapseString}",
-                            color = Color.Black,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }, onLongClick = { editEvent() })
+        Box(
+            modifier = modifier.background(Color(0x66A3A3A3))
+        ) {
+            EditEventContent(
+                modifier = Modifier.padding(12.dp)
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFFE4E4E7)),
+                uiState = editUiState,
+                setClientName = {  },
+                setProcedure = {  },
+                onEventReady = { viewModel.onEventEditFinish() },
+                setDuration = {  },
+                setSelectedTime = { hour, minute ->
+
+                },
+                setSelectedDate = { year, month, day ->
+
+                },
+                onClose = { viewModel.onEventEditFinish() }
+            )
+        }
     }
 
-    private fun editEvent() {
-        Toast.makeText(this, "Editing event", Toast.LENGTH_SHORT).show()
+    @OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
+    @Composable
+    fun EventListItem(event: EventFb, dismissState: DismissState) {
+        Card(
+            elevation = animateDpAsState(
+                if (dismissState.dismissDirection != null) 8.dp else 6.dp
+            ).value,
+            modifier = Modifier
+                .combinedClickable(
+                    onClick = { },
+                    onLongClick = { editEvent(event) },
+                )
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            backgroundColor = Color(0xFFF8F8F8),
+            shape = RoundedCornerShape(corner = CornerSize(16.dp))
+        ) {
+            ConstraintLayout(modifier = Modifier.fillMaxWidth()) {
+                val (image, eventDescription, time) = createRefs()
+
+                FloatingActionButton(
+                    modifier = Modifier
+                        .size(70.dp)
+                        .constrainAs(image) {
+                            this.start.linkTo(parent.start, 12.dp)
+                            bottom.linkTo(parent.bottom, 12.dp)
+                            top.linkTo(parent.top, 12.dp)
+                        },
+                    onClick = { },
+                    backgroundColor = Color(0xFF4B4185)
+                ) {
+                    Icon(
+                        painterResource(id = R.drawable.ic_baseline_content_cut_24),
+                        contentDescription = "Scissors",
+                        tint = Color(0xFFffbc9c)
+                    )
+                }
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier
+                        .constrainAs(eventDescription) {
+                            this.start.linkTo(image.end, 12.dp)
+                            bottom.linkTo(parent.bottom, 12.dp)
+                            top.linkTo(parent.top, 12.dp)
+                            end.linkTo(time.start, 8.dp)
+                            height = Dimension.fillToConstraints
+                            width = Dimension.fillToConstraints
+                        }) {
+                    Text(
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        text = "Name: ${event.name}",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        text = "Procedure: ${event.procedure}",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Row(modifier = Modifier
+                    .constrainAs(time) {
+                        this.start.linkTo(eventDescription.end)
+                        bottom.linkTo(parent.bottom)
+                        top.linkTo(parent.top)
+                        end.linkTo(parent.end)
+                        height = Dimension.fillToConstraints
+                        width = Dimension.wrapContent
+                    }
+                    .background(Color(0xFFffbc9c)),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 6.dp),
+                        text = "${event.timeLapseString}",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+
+    private fun editEvent(event: EventFb?) {
+        viewModel.onEventEdit(event)
     }
 
     override fun onResume() {

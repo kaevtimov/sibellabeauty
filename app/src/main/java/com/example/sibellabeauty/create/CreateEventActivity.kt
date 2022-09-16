@@ -237,9 +237,7 @@ class CreateEventActivity : AppCompatActivity() {
     @Composable
     fun ProcedureDurationSpinner(modifier: Modifier = Modifier) {
         val options = viewModel.procedureDurations.keys
-        var expanded by remember {
-            mutableStateOf(false)
-        }
+        var expanded by remember { mutableStateOf(false) }
         val selectedOptionText = viewModel.duration
 
         ExposedDropdownMenuBox(

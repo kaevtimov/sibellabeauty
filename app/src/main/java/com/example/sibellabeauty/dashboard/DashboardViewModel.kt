@@ -2,9 +2,11 @@ package com.example.sibellabeauty.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.sibellabeauty.Constants
 import com.example.sibellabeauty.data.FirebaseResponse
 import com.example.sibellabeauty.login.UserFb
 import com.example.sibellabeauty.splash.IUserRepository
+import com.example.sibellabeauty.widgets.EditUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +21,8 @@ data class DashboardUiState(
     var selectedDate: String = LocalDate.now().toString(),
     var loggedInUser: UserFb? = null,
     var message: String? = null,
-    val isLoading: Boolean? = false
+    val isLoading: Boolean? = false,
+    val editDialogUiState: EditUiState? = null
 )
 
 private const val ONE_DAY_IN_MILLIS = 1L
@@ -72,6 +75,27 @@ class DashboardViewModel(
         getEventsByDate()
     }
 
+    fun onEventEdit(event: EventFb?) {
+        _uiState.update {
+            it.copy(
+                editDialogUiState = EditUiState(
+                    clientName = event?.name,
+                    procedure = event?.procedure,
+                    duration = Constants.procedureDurations.filterValues { it == event?.duration }.keys.firstOrNull(),
+                    selectedEventDateUi = event,
+                    selectedEventTimeUi = "",
+                    selectedEventDate = event.
+                )
+            )
+        }
+    }
+
+    fun onEventEditFinish() {
+        _uiState.update {
+            it.copy(editDialogUiState = null)
+        }
+    }
+
     fun getEventsByDate() {
         _uiState.update {
             it.copy(isLoading = true)
@@ -94,21 +118,30 @@ class DashboardViewModel(
             }
             getEventsByDate()
             _uiState.update {
-                it.copy(message = (response as? FirebaseResponse.Success)?.data ?: "Error removing event.")
+                it.copy(
+                    message = (response as? FirebaseResponse.Success)?.data
+                        ?: "Error removing event."
+                )
             }
         }
     }
 
     fun onNextDay() {
         _uiState.update {
-            it.copy(selectedDate = LocalDate.parse(_uiState.value.selectedDate).plusDays(ONE_DAY_IN_MILLIS).toString())
+            it.copy(
+                selectedDate = LocalDate.parse(_uiState.value.selectedDate)
+                    .plusDays(ONE_DAY_IN_MILLIS).toString()
+            )
         }
         getEventsByDate()
     }
 
     fun onPrevDay() {
         _uiState.update {
-            it.copy(selectedDate = LocalDate.parse(_uiState.value.selectedDate).minusDays(ONE_DAY_IN_MILLIS).toString())
+            it.copy(
+                selectedDate = LocalDate.parse(_uiState.value.selectedDate)
+                    .minusDays(ONE_DAY_IN_MILLIS).toString()
+            )
         }
         getEventsByDate()
     }
