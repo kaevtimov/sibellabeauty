@@ -25,7 +25,7 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun eventDao(): EventDao
 
     companion object {
-        // tdsfsdgsgsgs
+        // wfwefwgweg
         private const val DB_NAME = "app_db"
         @Volatile
         private var INSTANCE: AppDatabase? = null
