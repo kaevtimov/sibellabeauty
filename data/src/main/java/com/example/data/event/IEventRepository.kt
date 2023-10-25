@@ -1,6 +1,6 @@
-package com.example.sibellabeauty.dashboard
+package com.example.data.event
 
-import com.example.sibellabeauty.data.FirebaseResponse
+import com.example.data.FirebaseResponse
 
 interface IEventRepository {
 

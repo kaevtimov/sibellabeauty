@@ -1,11 +1,12 @@
-package com.example.sibellabeauty.splash
+package com.example.data.event
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import com.example.data.user.User
 
 @Dao
-interface UserDao {
+interface EventDao {
 
     @Insert
     fun fillWithUsers(users: List<User>)

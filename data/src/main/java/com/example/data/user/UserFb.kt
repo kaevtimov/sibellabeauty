@@ -1,4 +1,4 @@
-package com.example.sibellabeauty.login
+package com.example.data.user
 
 data class UserFb(
     var id: String? = null,

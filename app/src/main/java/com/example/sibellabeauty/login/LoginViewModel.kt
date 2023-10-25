@@ -5,18 +5,18 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sibellabeauty.data.FirebaseResponse
-import com.example.sibellabeauty.data.SharedPrefsManager
-import com.example.sibellabeauty.splash.IUserRepository
+import com.example.data.FirebaseResponse
+import com.example.data.SharedPrefsManager
+import com.example.data.IUserRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class LoginViewModel(private val userRepository: IUserRepository): ViewModel() {
+class LoginViewModel(private val userRepository: com.example.data.IUserRepository): ViewModel() {
 
-    private var _logIn = MutableLiveData<FirebaseResponse<Any>>()
-    val logIn: LiveData<FirebaseResponse<Any>>
+    private var _logIn = MutableLiveData<com.example.data.FirebaseResponse<Any>>()
+    val logIn: LiveData<com.example.data.FirebaseResponse<Any>>
         get() = _logIn
 
     var username = mutableStateOf("")
@@ -40,19 +40,19 @@ class LoginViewModel(private val userRepository: IUserRepository): ViewModel() {
                 if (user != null) {
                     login(user)
                 } else {
-                    _logIn.postValue(FirebaseResponse.Error("Wrong credentials."))
+                    _logIn.postValue(com.example.data.FirebaseResponse.Error("Wrong credentials."))
                 }
             }
         }
     }
 
-    private suspend fun login(user: UserFb) {
+    private suspend fun login(user: com.example.data.UserFb) {
         viewModelScope.launch {
             val response = withContext(Dispatchers.IO) {
                 userRepository.loginUser(user)
             }
-            SharedPrefsManager.saveUserLoggedIn(Gson().toJson(user))
-            _logIn.postValue(response ?: FirebaseResponse.Error("Error."))
+            com.example.data.SharedPrefsManager.saveUserLoggedIn(Gson().toJson(user))
+            _logIn.postValue(response ?: com.example.data.FirebaseResponse.Error("Error."))
         }
     }
 

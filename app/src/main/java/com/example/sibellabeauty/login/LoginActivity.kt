@@ -30,7 +30,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.sibellabeauty.dashboard.DashboardActivity
 import com.example.sibellabeauty.R
 import com.example.sibellabeauty.SibellaBeautyApplication
-import com.example.sibellabeauty.data.FirebaseResponse
+import com.example.data.FirebaseResponse
 import com.example.sibellabeauty.register.RegisterActivity
 import com.example.sibellabeauty.theme.AppTheme
 import com.example.sibellabeauty.viewModelFactory
@@ -277,10 +277,10 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setObservers() {
         viewModel.logIn.observe(this) {
-            if (it is FirebaseResponse.Success) {
+            if (it is com.example.data.FirebaseResponse.Success) {
                 openHomeScreen()
             } else {
-                Toast.makeText(this, (it as? FirebaseResponse.Error)?.message, Toast.LENGTH_LONG)
+                Toast.makeText(this, (it as? com.example.data.FirebaseResponse.Error)?.message, Toast.LENGTH_LONG)
                     .show()
             }
         }

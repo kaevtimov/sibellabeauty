@@ -1,18 +1,14 @@
-package com.example.sibellabeauty.splash
+package com.example.data.user
 
-import android.content.Context
+import com.example.data.FirebaseResponse
+import com.example.data.SharedPrefsManager
 import com.example.sibellabeauty.Constants
-import com.example.sibellabeauty.data.FirebaseResponse
-import com.example.sibellabeauty.data.SharedPrefsManager
-import com.example.sibellabeauty.login.UserFb
 import com.example.sibellabeauty.utils.DeviceUtils
-import com.google.android.gms.tasks.Task
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.tasks.await
-import java.lang.reflect.Type
 
 
 class UserRepository(private val userDao: UserDao) : IUserRepository {

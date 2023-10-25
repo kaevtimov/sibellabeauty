@@ -1,11 +1,11 @@
-package com.example.sibellabeauty.dashboard
+package com.example.data.event
 
+import com.example.data.FirebaseResponse
+import com.example.data.SharedPrefsManager
+import com.example.data.user.UserFb
 import com.example.sibellabeauty.Constants
 import com.example.sibellabeauty.Constants.LOCAL_DATE_FORMATTER
 import com.example.sibellabeauty.Constants.LOCAL_DATE_TIME_FORMATTER
-import com.example.sibellabeauty.data.FirebaseResponse
-import com.example.sibellabeauty.data.SharedPrefsManager
-import com.example.sibellabeauty.login.UserFb
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson

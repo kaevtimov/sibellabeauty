@@ -8,25 +8,24 @@ import com.example.sibellabeauty.Constants
 import com.example.sibellabeauty.Constants.LOCAL_DATE_FORMATTER
 import com.example.sibellabeauty.Constants.LOCAL_DATE_TIME_FORMATTER
 import com.example.sibellabeauty.Constants.LOCAL_TIME_FORMATTER
-import com.example.sibellabeauty.dashboard.EventFb
-import com.example.sibellabeauty.dashboard.IEventRepository
-import com.example.sibellabeauty.data.FirebaseResponse
-import com.example.sibellabeauty.data.SharedPrefsManager
-import com.example.sibellabeauty.login.UserFb
+import com.example.data.EventFb
+import com.example.data.IEventRepository
+import com.example.data.FirebaseResponse
+import com.example.data.SharedPrefsManager
+import com.example.data.UserFb
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.*
 
-class CreateEventViewModel(private val repository: IEventRepository) : ViewModel() {
+class CreateEventViewModel(private val repository: com.example.data.IEventRepository) : ViewModel() {
 
-    var addEventOutcome = mutableStateOf<FirebaseResponse<String>?>(null)
+    var addEventOutcome = mutableStateOf<com.example.data.FirebaseResponse<String>?>(null)
     var clientName = mutableStateOf("")
     var procedureName = mutableStateOf("")
     var enableCreateButton = mutableStateOf(false)
@@ -61,16 +60,20 @@ class CreateEventViewModel(private val repository: IEventRepository) : ViewModel
     }
 
     fun createEvent() {
-        addEventOutcome.value = FirebaseResponse.Loading
-        val eventToAdd = EventFb(
+        addEventOutcome.value = com.example.data.FirebaseResponse.Loading
+        val eventToAdd = com.example.data.EventFb(
             name = clientName.value,
-            date = selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_DATE_TIME_FORMATTER)),
+            date = selectedEventDate.value.format(
+                DateTimeFormatter.ofPattern(
+                    LOCAL_DATE_TIME_FORMATTER
+                )
+            ),
             duration = procedureDurations[duration.value],
             procedure = procedureName.value,
             timeLapseString = formatTimeLapse(),
-            user = Gson().fromJson<UserFb>(
-                SharedPrefsManager.getLoggedInUser(),
-                object : TypeToken<UserFb?>() {}.type
+            user = Gson().fromJson<com.example.data.UserFb>(
+                com.example.data.SharedPrefsManager.getLoggedInUser(),
+                object : TypeToken<com.example.data.UserFb?>() {}.type
             ).username ?: ""
         )
         viewModelScope.launch {
@@ -78,7 +81,7 @@ class CreateEventViewModel(private val repository: IEventRepository) : ViewModel
                 repository.checkEventSlotAvailability(eventToAdd)
             }
             if (!slotAvailable) {
-                addEventOutcome.value = FirebaseResponse.Error("Please select another date or time.")
+                addEventOutcome.value = com.example.data.FirebaseResponse.Error("Please select another date or time.")
                 return@launch
             }
             val response = withContext(Dispatchers.Default) {

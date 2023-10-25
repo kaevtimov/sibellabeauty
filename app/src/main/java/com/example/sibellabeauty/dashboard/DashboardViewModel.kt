@@ -2,9 +2,9 @@ package com.example.sibellabeauty.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sibellabeauty.data.FirebaseResponse
-import com.example.sibellabeauty.login.UserFb
-import com.example.sibellabeauty.splash.IUserRepository
+import com.example.data.FirebaseResponse
+import com.example.data.UserFb
+import com.example.data.IUserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,9 +15,9 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 data class DashboardUiState(
-    var events: ArrayList<EventFb> = ArrayList(),
+    var events: ArrayList<com.example.data.EventFb> = ArrayList(),
     var selectedDate: String = LocalDate.now().toString(),
-    var loggedInUser: UserFb? = null,
+    var loggedInUser: com.example.data.UserFb? = null,
     var message: String? = null,
     val isLoading: Boolean? = false
 )
@@ -25,8 +25,8 @@ data class DashboardUiState(
 private const val ONE_DAY_IN_MILLIS = 1L
 
 class DashboardViewModel(
-    private val userRepository: IUserRepository,
-    private val eventRepository: IEventRepository
+    private val userRepository: com.example.data.IUserRepository,
+    private val eventRepository: com.example.data.IEventRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -53,7 +53,7 @@ class DashboardViewModel(
             val response = withContext(Dispatchers.IO) {
                 userRepository.logoutUser()
             }
-            if (response is FirebaseResponse.Success) {
+            if (response is com.example.data.FirebaseResponse.Success) {
                 _uiState.update {
                     it.copy(loggedInUser = null)
                 }
@@ -87,14 +87,14 @@ class DashboardViewModel(
         }
     }
 
-    fun removeEvent(event: EventFb) {
+    fun removeEvent(event: com.example.data.EventFb) {
         viewModelScope.launch {
             val response = withContext(Dispatchers.IO) {
                 eventRepository.removeEvent(event)
             }
             getEventsByDate()
             _uiState.update {
-                it.copy(message = (response as? FirebaseResponse.Success)?.data ?: "Error removing event.")
+                it.copy(message = (response as? com.example.data.FirebaseResponse.Success)?.data ?: "Error removing event.")
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.example.sibellabeauty.data
+package com.example.data
 
 sealed class FirebaseResponse<out T> {
     data class Success<T>(val data: T?) : FirebaseResponse<T>()

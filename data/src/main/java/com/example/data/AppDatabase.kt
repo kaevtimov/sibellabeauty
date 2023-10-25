@@ -1,4 +1,4 @@
-package com.example.sibellabeauty
+package com.example.data
 
 import android.content.Context
 import android.util.Log
@@ -6,10 +6,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.sibellabeauty.dashboard.EventDao
-import com.example.sibellabeauty.dashboard.EventFb
-import com.example.sibellabeauty.splash.User
-import com.example.sibellabeauty.splash.UserDao
+import com.example.data.event.EventDao
+import com.example.data.user.User
+import com.example.data.user.UserDao
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope

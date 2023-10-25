@@ -1,8 +1,7 @@
-package com.example.sibellabeauty.data
+package com.example.data
 
 import android.content.Context
 import androidx.core.content.edit
-import com.example.sibellabeauty.SibellaBeautyApplication
 
 object SharedPrefsManager {
 
@@ -22,5 +21,6 @@ object SharedPrefsManager {
     }
 
     fun getLoggedInUser(): String? =
-        SibellaBeautyApplication.context().getSharedPreferences(MY_PREFS, Context.MODE_PRIVATE).getString(USER_KEY_VALUE, "")
+        SibellaBeautyApplication.context().getSharedPreferences(MY_PREFS, Context.MODE_PRIVATE).getString(
+            USER_KEY_VALUE, "")
 }

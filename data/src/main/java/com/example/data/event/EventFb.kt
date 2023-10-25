@@ -1,4 +1,4 @@
-package com.example.sibellabeauty.dashboard
+package com.example.data.event
 
 data class EventFb(
     var id: String? = "",

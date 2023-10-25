@@ -10,12 +10,9 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -25,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,20 +34,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.Role.Companion.Image
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.constraintlayout.compose.Dimension
 import com.example.sibellabeauty.create.CreateEventActivity
-import com.example.sibellabeauty.data.FirebaseResponse
 import com.example.sibellabeauty.login.LoginActivity
 import com.example.sibellabeauty.utils.EnlargingWidget
 import com.example.sibellabeauty.utils.Pulsating
 import com.example.sibellabeauty.widgets.LoadingWidget
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 class DashboardActivity : AppCompatActivity() {
 
@@ -228,7 +219,7 @@ class DashboardActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun DashboardContent(events: ArrayList<EventFb>, modifier: Modifier = Modifier) {
+    fun DashboardContent(events: ArrayList<com.example.data.EventFb>, modifier: Modifier = Modifier) {
         if (events.isEmpty()) return
         Box(
             modifier = modifier
@@ -239,7 +230,7 @@ class DashboardActivity : AppCompatActivity() {
             LazyColumn(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)) {
                 items(
                     events,
-                    { listItem: EventFb -> listItem.id!! })
+                    { listItem: com.example.data.EventFb -> listItem.id!! })
                 {
                     val dismissState = rememberDismissState()
 
@@ -291,7 +282,7 @@ class DashboardActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun EventListItem(event: EventFb, dismissState: DismissState) {
+    fun EventListItem(event: com.example.data.EventFb, dismissState: DismissState) {
         EnlargingWidget(content =  {
             Card(
                 elevation = animateDpAsState(

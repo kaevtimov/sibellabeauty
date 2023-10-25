@@ -16,7 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -25,11 +24,10 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.example.sibellabeauty.R
 import com.example.sibellabeauty.SibellaBeautyApplication
-import com.example.sibellabeauty.data.FirebaseResponse
+import com.example.data.FirebaseResponse
 import com.example.sibellabeauty.theme.AppTheme
 import com.example.sibellabeauty.viewModelFactory
 import com.example.sibellabeauty.widgets.LoadingWidget
-import java.time.LocalDate
 
 class CreateEventActivity : AppCompatActivity() {
 
@@ -196,7 +194,7 @@ class CreateEventActivity : AppCompatActivity() {
 
     @Composable
     fun LoadingScreen(modifier: Modifier = Modifier) {
-        val loading = viewModel.addEventOutcome.value is FirebaseResponse.Loading
+        val loading = viewModel.addEventOutcome.value is com.example.data.FirebaseResponse.Loading
         if (loading) {
             LoadingWidget(modifier = modifier)
         }
@@ -315,15 +313,15 @@ class CreateEventActivity : AppCompatActivity() {
         val message = viewModel.addEventOutcome
 
         when (message.value) {
-            is FirebaseResponse.Error -> Toast.makeText(
+            is com.example.data.FirebaseResponse.Error -> Toast.makeText(
                 this,
-                (message.value as FirebaseResponse.Error).message,
+                (message.value as com.example.data.FirebaseResponse.Error).message,
                 Toast.LENGTH_SHORT
             ).show()
-            is FirebaseResponse.Success -> {
+            is com.example.data.FirebaseResponse.Success -> {
                 Toast.makeText(
                     this,
-                    (message.value as FirebaseResponse.Success).data,
+                    (message.value as com.example.data.FirebaseResponse.Success).data,
                     Toast.LENGTH_SHORT
                 ).show()
                 finish()

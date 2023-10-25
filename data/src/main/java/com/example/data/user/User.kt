@@ -1,4 +1,4 @@
-package com.example.sibellabeauty.splash
+package com.example.data.user
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

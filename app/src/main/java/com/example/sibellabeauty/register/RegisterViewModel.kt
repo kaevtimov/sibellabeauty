@@ -5,13 +5,13 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sibellabeauty.login.UserFb
-import com.example.sibellabeauty.splash.IUserRepository
+import com.example.data.UserFb
+import com.example.data.IUserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class RegisterViewModel(private val userRepository: IUserRepository): ViewModel() {
+class RegisterViewModel(private val userRepository: com.example.data.IUserRepository): ViewModel() {
 
     var username = mutableStateOf("")
     var password = mutableStateOf("")
@@ -51,7 +51,12 @@ class RegisterViewModel(private val userRepository: IUserRepository): ViewModel(
                     _registerState.postValue(RegisterState.PASSWORD_PROBLEM)
                     return@withContext
                 }
-                userRepository.register(UserFb(username = username.value, password = password.value))
+                userRepository.register(
+                    com.example.data.UserFb(
+                        username = username.value,
+                        password = password.value
+                    )
+                )
                 _registerState.postValue(RegisterState.SUCCESS)
             }
         }
