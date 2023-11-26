@@ -1,17 +1,31 @@
 package com.example.sibellabeauty.register
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.UserFb
-import com.example.data.IUserRepository
-import kotlinx.coroutines.Dispatchers
+import com.example.domain.CheckUsernameUseCase
+import com.example.domain.Outcome
+import com.example.domain.RegisterState
+import com.example.domain.RegisterUser
+import com.example.sibellabeauty.di.IODispatcher
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class RegisterViewModel(private val userRepository: com.example.data.IUserRepository): ViewModel() {
+@HiltViewModel
+class RegisterViewModel @Inject constructor(
+    private val checkUsername: CheckUsernameUseCase,
+    private val registerUser: RegisterUser,
+    @IODispatcher private val ioDispatcher: CoroutineDispatcher
+): ViewModel() {
 
     var username = mutableStateOf("")
     var password = mutableStateOf("")
@@ -19,17 +33,14 @@ class RegisterViewModel(private val userRepository: com.example.data.IUserReposi
     var enableLoginButton = mutableStateOf(false)
     var usernameState = mutableStateOf(true)
 
-    private var _registerState = MutableLiveData<RegisterState>()
-    val registerState: LiveData<RegisterState>
-        get() = _registerState
+    private var _registerState = MutableStateFlow<Outcome<RegisterState>?>(null)
+    val registerState: StateFlow<Outcome<RegisterState>?> = _registerState.asStateFlow()
 
     fun setUsername(username: String) {
         this.username.value = username
-        viewModelScope.launch {
-            withContext(Dispatchers.Default){
-                val checkedUsername = userRepository.checkUsernameUnique(username)
-                usernameState.value = checkedUsername
-            }
+        viewModelScope.launch(ioDispatcher) {
+            val checkedUsername = checkUsername(username)
+            usernameState.value = checkedUsername
         }
         toggleButton()
     }
@@ -44,32 +55,15 @@ class RegisterViewModel(private val userRepository: com.example.data.IUserReposi
         toggleButton()
     }
 
-    fun register() {
-        viewModelScope.launch {
-            withContext(Dispatchers.Default) {
-                if (correctPassword().not()) {
-                    _registerState.postValue(RegisterState.PASSWORD_PROBLEM)
-                    return@withContext
-                }
-                userRepository.register(
-                    com.example.data.UserFb(
-                        username = username.value,
-                        password = password.value
-                    )
-                )
-                _registerState.postValue(RegisterState.SUCCESS)
-            }
-        }
-    }
+    fun register() = registerUser(username.value, password.value, passwordConfirm.value)
+        .onEach(::emitUiResult)
+        .flowOn(ioDispatcher)
+        .launchIn(viewModelScope)
 
-    private fun correctPassword(): Boolean = password.value == passwordConfirm.value
+    private fun emitUiResult(result: Outcome<RegisterState>) =
+        _registerState.update { result }
 
     private fun toggleButton() {
         this.enableLoginButton.value = username.value.isNotBlank() && password.value.isNotBlank() && passwordConfirm.value.isNotBlank()
     }
-}
-
-enum class RegisterState{
-    SUCCESS, // in case of success
-    PASSWORD_PROBLEM // in case of password inconsistency
 }

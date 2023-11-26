@@ -7,12 +7,14 @@ import android.os.Bundle
 import android.widget.DatePicker
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -27,9 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.sibellabeauty.R
-import com.example.sibellabeauty.SibellaBeautyApplication
 import com.example.sibellabeauty.theme.AppTheme
-import com.example.sibellabeauty.viewModelFactory
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.draw.clip
@@ -37,6 +37,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.constraintlayout.compose.Dimension
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.domain.event.Event
 import com.example.sibellabeauty.create.CreateEventActivity
 import com.example.sibellabeauty.login.LoginActivity
 import com.example.sibellabeauty.utils.EnlargingWidget
@@ -46,12 +48,7 @@ import java.time.LocalDate
 
 class DashboardActivity : AppCompatActivity() {
 
-    private val viewModel: DashboardViewModel by viewModelFactory {
-        DashboardViewModel(
-            (application as SibellaBeautyApplication).usersRepo!!,
-            (application as SibellaBeautyApplication).eventsRepo!!
-        )
-    }
+    private val viewModel: DashboardViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +62,7 @@ class DashboardActivity : AppCompatActivity() {
 
     @Composable
     fun DashboardScreen() {
-        val uiState by viewModel.uiState.collectAsState()
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
         if (uiState.loggedInUser == null) {
             startActivity(
@@ -219,7 +216,7 @@ class DashboardActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun DashboardContent(events: ArrayList<com.example.data.EventFb>, modifier: Modifier = Modifier) {
+    fun DashboardContent(events: ArrayList<Event>, modifier: Modifier = Modifier) {
         if (events.isEmpty()) return
         Box(
             modifier = modifier
@@ -228,10 +225,7 @@ class DashboardActivity : AppCompatActivity() {
                 .background(Color(0xFFFBE5FD))
         ) {
             LazyColumn(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)) {
-                items(
-                    events,
-                    { listItem: com.example.data.EventFb -> listItem.id!! })
-                {
+                items(events) {
                     val dismissState = rememberDismissState()
 
                     if (dismissState.isDismissed(DismissDirection.EndToStart)) {
@@ -282,7 +276,7 @@ class DashboardActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    fun EventListItem(event: com.example.data.EventFb, dismissState: DismissState) {
+    fun EventListItem(event: Event, dismissState: DismissState) {
         EnlargingWidget(content =  {
             Card(
                 elevation = animateDpAsState(

@@ -1,23 +1,30 @@
 package com.example.sibellabeauty.login
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.FirebaseResponse
-import com.example.data.SharedPrefsManager
-import com.example.data.IUserRepository
-import com.google.gson.Gson
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.domain.LoginUser
+import com.example.domain.Outcome
+import com.example.sibellabeauty.di.IODispatcher
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
-class LoginViewModel(private val userRepository: com.example.data.IUserRepository): ViewModel() {
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val loginUser: LoginUser,
+    @IODispatcher private val ioDispatcher: CoroutineDispatcher
+): ViewModel() {
 
-    private var _logIn = MutableLiveData<com.example.data.FirebaseResponse<Any>>()
-    val logIn: LiveData<com.example.data.FirebaseResponse<Any>>
-        get() = _logIn
+    private var _logInState = MutableStateFlow<Outcome<Unit>?>(null)
+    val logInState: StateFlow<Outcome<Unit>?> = _logInState.asStateFlow()
 
     var username = mutableStateOf("")
     var password = mutableStateOf("")
@@ -33,31 +40,25 @@ class LoginViewModel(private val userRepository: com.example.data.IUserRepositor
         toggleButton()
     }
 
-    fun tryLogin() {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val user = userRepository.getUserByCredentials(username.value, password.value)
-                if (user != null) {
-                    login(user)
-                } else {
-                    _logIn.postValue(com.example.data.FirebaseResponse.Error("Wrong credentials."))
-                }
-            }
-        }
-    }
+    fun tryLogin() = loginUser(username.value, password.value)
+        .onEach(::emitUiResult)
+        .flowOn(ioDispatcher)
+        .launchIn(viewModelScope)
 
-    private suspend fun login(user: com.example.data.UserFb) {
-        viewModelScope.launch {
-            val response = withContext(Dispatchers.IO) {
-                userRepository.loginUser(user)
+    private fun emitUiResult(result: Outcome<Unit>) =
+        when (result) {
+            is Outcome.Success -> _logInState.update {
+                Outcome.Success(Unit)
             }
-            com.example.data.SharedPrefsManager.saveUserLoggedIn(Gson().toJson(user))
-            _logIn.postValue(response ?: com.example.data.FirebaseResponse.Error("Error."))
+            is Outcome.Failure -> _logInState.update {
+                Outcome.Failure(result.error)
+            }
+            is Outcome.Loading -> _logInState.update {
+                Outcome.Loading()
+            }
         }
-    }
 
     private fun toggleButton() {
         this.enableLoginButton.value = username.value.isNotBlank() && password.value.isNotBlank()
     }
-
 }

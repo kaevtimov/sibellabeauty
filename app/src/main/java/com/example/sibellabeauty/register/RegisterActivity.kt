@@ -3,6 +3,7 @@ package com.example.sibellabeauty.register
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,33 +24,36 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.domain.Outcome
+import com.example.domain.RegisterState
 import com.example.sibellabeauty.R
-import com.example.sibellabeauty.SibellaBeautyApplication
-import com.example.sibellabeauty.login.LoginViewModel
 import com.example.sibellabeauty.theme.AppTheme
-import com.example.sibellabeauty.viewModelFactory
 
 class RegisterActivity : AppCompatActivity() {
 
-    private val viewModel: RegisterViewModel by viewModelFactory {
-        RegisterViewModel((application as SibellaBeautyApplication).usersRepo!!)
-    }
+    private val viewModel: RegisterViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setObservers()
         setContent {
-            AppTheme() {
-                RegisterScreen()
+            val registerState by viewModel.registerState.collectAsStateWithLifecycle()
+            when(val state = registerState) {
+                is Outcome.Success -> {
+                    if (state.data == RegisterState.SUCCESS) {
+                        finish()
+                    } else {
+                        Toast.makeText(this, "Username taken!", Toast.LENGTH_LONG).show()
+                    }
+                }
+                is Outcome.Failure -> {
+                    Toast.makeText(this, state.error, Toast.LENGTH_LONG).show()
+                }
+                is Outcome.Loading -> {}
+                else -> Unit
             }
-        }
-    }
-
-    private fun setObservers() {
-        viewModel.registerState.observe(this) {
-            when(it) {
-                RegisterState.SUCCESS -> finish()
-                else -> Toast.makeText(this, "Username taken!", Toast.LENGTH_LONG).show()
+            AppTheme {
+                RegisterScreen()
             }
         }
     }
@@ -111,7 +115,9 @@ class RegisterActivity : AppCompatActivity() {
 
         Button(
             enabled = enableBtn.value,
-            modifier = Modifier.wrapContentWidth().padding(horizontal = 16.dp),
+            modifier = Modifier
+                .wrapContentWidth()
+                .padding(horizontal = 16.dp),
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 backgroundColor = Color.Transparent

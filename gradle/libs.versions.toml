@@ -193,6 +193,8 @@ sentry-okhttp = { module = "io.sentry:sentry-android-okhttp", version.ref = "sen
 # Hijri Calendar
 hijriCalendar = { module = "com.github.msarhan:ummalqura-calendar", version.ref = "hijriCalendar" }
 hijriCalendarView = { module = "com.github.eltohamy:material-hijri-calendarview", version.ref = "hijriCalendarView" }
+androidx-security-crypto-ktx = { group = "androidx.security", name = "security-crypto-ktx", version = "1.0.0" }
+firebase-installations-ktx = { group = "com.google.firebase", name = "firebase-installations-ktx", version = "17.2.0" }
 
 [bundles]
 lifecycle = ["lifecycle-viewmodel-ktx", "lifecycle-extensions"]

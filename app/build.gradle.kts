@@ -1,8 +1,9 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("kotlin-kapt")
     id("com.google.gms.google-services")
+    kotlin("kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -50,8 +51,6 @@ android {
 
 dependencies {
 
-    implementation(platform(libs.google.firebase.bom))
-    implementation(libs.google.firebase.database)
     implementation(libs.kotlin.coroutines.playservices)
 
     implementation(libs.kotlin.core)
@@ -79,4 +78,10 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.compose.constraintLayout)
     implementation(libs.androidx.preference)
+    kapt(libs.hilt.kapt)
+    implementation(libs.hilt.android)
+    implementation(libs.lifecycle.compose)
+
+    implementation(project(":domain"))
+    implementation(project(":common"))
 }

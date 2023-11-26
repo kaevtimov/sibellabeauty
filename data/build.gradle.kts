@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.kapt3.base.Kapt.kapt
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    kotlin("kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -11,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.data"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
@@ -40,9 +42,15 @@ android {
 dependencies {
 
     implementation(libs.kotlin.core)
+    implementation(libs.kotlin.coroutines.playservices)
     implementation(platform(libs.kotlin.bom))
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.google.code.gson)
+    implementation(libs.hilt.android)
+    implementation(platform(libs.google.firebase.bom))
+    implementation(libs.google.firebase.database)
+    kapt(libs.hilt.kapt)
+    implementation(project(":common"))
 }

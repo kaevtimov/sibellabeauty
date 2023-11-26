@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.DatePicker
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,34 +23,45 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.domain.Outcome
 import com.example.sibellabeauty.R
-import com.example.sibellabeauty.SibellaBeautyApplication
-import com.example.data.FirebaseResponse
 import com.example.sibellabeauty.theme.AppTheme
-import com.example.sibellabeauty.viewModelFactory
 import com.example.sibellabeauty.widgets.LoadingWidget
 
 class CreateEventActivity : AppCompatActivity() {
 
-    private val viewModel: CreateEventViewModel by viewModelFactory {
-        CreateEventViewModel(
-            (application as SibellaBeautyApplication).eventsRepo!!
-        )
-    }
+    private val viewModel: CreateEventViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                CreateEventScreen()
+                val outcome by viewModel.addEventOutcome.collectAsStateWithLifecycle()
+                when (outcome) {
+                    is Outcome.Failure -> Toast.makeText(
+                        this,
+                        (outcome as Outcome.Failure<String>).error,
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    is Outcome.Success -> {
+                        Toast.makeText(
+                            this,
+                            (outcome as Outcome.Success<String>).data,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        finish()
+                    }
+                    else -> {}
+                }
+                CreateEventScreen(outcome is Outcome.Loading)
             }
         }
     }
 
     @Composable
-    fun CreateEventScreen() {
-        addEventOutcome()
-
+    fun CreateEventScreen(loadingState: Boolean = false) {
         ConstraintLayout(
             modifier = Modifier
                 .fillMaxSize()
@@ -84,7 +96,7 @@ class CreateEventActivity : AppCompatActivity() {
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
             })
-            LoadingScreen(modifier = Modifier.constrainAs(loading) {
+            LoadingScreen(loading = loadingState, modifier = Modifier.constrainAs(loading) {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
@@ -193,8 +205,7 @@ class CreateEventActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun LoadingScreen(modifier: Modifier = Modifier) {
-        val loading = viewModel.addEventOutcome.value is com.example.data.FirebaseResponse.Loading
+    fun LoadingScreen(loading: Boolean, modifier: Modifier = Modifier) {
         if (loading) {
             LoadingWidget(modifier = modifier)
         }
@@ -307,27 +318,5 @@ class CreateEventActivity : AppCompatActivity() {
         dialog.datePicker.minDate = System.currentTimeMillis() - 1000
 
         dialog.show()
-    }
-
-    private fun addEventOutcome() {
-        val message = viewModel.addEventOutcome
-
-        when (message.value) {
-            is com.example.data.FirebaseResponse.Error -> Toast.makeText(
-                this,
-                (message.value as com.example.data.FirebaseResponse.Error).message,
-                Toast.LENGTH_SHORT
-            ).show()
-            is com.example.data.FirebaseResponse.Success -> {
-                Toast.makeText(
-                    this,
-                    (message.value as com.example.data.FirebaseResponse.Success).data,
-                    Toast.LENGTH_SHORT
-                ).show()
-                finish()
-            }
-            else -> {/* show loading */
-            }
-        }
     }
 }

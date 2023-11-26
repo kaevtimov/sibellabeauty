@@ -5,37 +5,61 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sibellabeauty.Constants
-import com.example.sibellabeauty.Constants.LOCAL_DATE_FORMATTER
-import com.example.sibellabeauty.Constants.LOCAL_DATE_TIME_FORMATTER
-import com.example.sibellabeauty.Constants.LOCAL_TIME_FORMATTER
-import com.example.data.EventFb
-import com.example.data.IEventRepository
-import com.example.data.FirebaseResponse
-import com.example.data.SharedPrefsManager
-import com.example.data.UserFb
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.domain.CreateEventUseCase
+import com.example.domain.GetLoggedInUser
+import com.example.domain.Outcome
+import com.example.domain.event.Event
+import com.example.sibellabeauty.di.IODispatcher
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.*
 
-class CreateEventViewModel(private val repository: com.example.data.IEventRepository) : ViewModel() {
+@HiltViewModel
+class CreateEventViewModel(
+    private val createEventUseCase: CreateEventUseCase,
+    private val getLoggedUser: GetLoggedInUser,
+    @IODispatcher private val ioDispatcher: CoroutineDispatcher
+) : ViewModel() {
 
-    var addEventOutcome = mutableStateOf<com.example.data.FirebaseResponse<String>?>(null)
+    private var _addEventOutcome = MutableStateFlow<Outcome<String>?>(null)
+    val addEventOutcome: StateFlow<Outcome<String>?> = _addEventOutcome.asStateFlow()
+
     var clientName = mutableStateOf("")
     var procedureName = mutableStateOf("")
     var enableCreateButton = mutableStateOf(false)
     var selectedEventDate = mutableStateOf(LocalDateTime.now())
+    var loggedInUsername = mutableStateOf("")
     val procedureDurations = Constants.procedureDurations
     var duration = mutableStateOf(procedureDurations.keys.toList()[0])
     val selectedEventTimeUi: MutableState<String>
-        get() = mutableStateOf(selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_TIME_FORMATTER)))
+        get() = mutableStateOf(
+            selectedEventDate.value.format(
+                DateTimeFormatter.ofPattern(
+                    LOCAL_TIME_FORMATTER
+                )
+            )
+        )
     val selectedEventDateUi: MutableState<String>
-        get() = mutableStateOf(selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_DATE_FORMATTER)))
+        get() = mutableStateOf(
+            selectedEventDate.value.format(
+                DateTimeFormatter.ofPattern(
+                    LOCAL_DATE_FORMATTER
+                )
+            )
+        )
 
     fun setClientName(name: String) {
         clientName.value = name
@@ -59,40 +83,39 @@ class CreateEventViewModel(private val repository: com.example.data.IEventReposi
         selectedEventDate.value = selectedEventDate.value.withMinute(minute).withHour(hour)
     }
 
-    fun createEvent() {
-        addEventOutcome.value = com.example.data.FirebaseResponse.Loading
-        val eventToAdd = com.example.data.EventFb(
-            name = clientName.value,
-            date = selectedEventDate.value.format(
-                DateTimeFormatter.ofPattern(
-                    LOCAL_DATE_TIME_FORMATTER
-                )
-            ),
-            duration = procedureDurations[duration.value],
-            procedure = procedureName.value,
-            timeLapseString = formatTimeLapse(),
-            user = Gson().fromJson<com.example.data.UserFb>(
-                com.example.data.SharedPrefsManager.getLoggedInUser(),
-                object : TypeToken<com.example.data.UserFb?>() {}.type
-            ).username ?: ""
-        )
-        viewModelScope.launch {
-            val slotAvailable = withContext(Dispatchers.Default) {
-                repository.checkEventSlotAvailability(eventToAdd)
-            }
-            if (!slotAvailable) {
-                addEventOutcome.value = com.example.data.FirebaseResponse.Error("Please select another date or time.")
-                return@launch
-            }
-            val response = withContext(Dispatchers.Default) {
-                repository.addEvent(eventToAdd)
-            }
-            addEventOutcome.value = response
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun createEvent() = getLoggedUser()
+        .filter { it is Outcome.Success }
+        .flatMapLatest {
+            loggedInUsername.value = (it as? Outcome.Success)?.data?.username.orEmpty()
+            createEventUseCase(getEventToAdd())
         }
-    }
+        .onEach { result ->
+            when (result) {
+                is Outcome.Success -> _addEventOutcome.update { result }
+                is Outcome.Failure -> _addEventOutcome.update { result }
+                is Outcome.Loading -> _addEventOutcome.update { Outcome.Loading() }
+            }
+        }
+        .flowOn(ioDispatcher)
+        .launchIn(viewModelScope)
+
+    private fun getEventToAdd() = Event(
+        name = clientName.value,
+        date = selectedEventDate.value.format(
+            DateTimeFormatter.ofPattern(
+                LOCAL_DATE_TIME_FORMATTER
+            )
+        ),
+        duration = procedureDurations[duration.value],
+        procedure = procedureName.value,
+        timeLapseString = formatTimeLapse(),
+        user = loggedInUsername.value
+    )
 
     private fun formatTimeLapse(): String {
-        val end = selectedEventDate.value.plus(procedureDurations[duration.value]!!, ChronoUnit.MILLIS)
+        val end =
+            selectedEventDate.value.plus(procedureDurations[duration.value]!!, ChronoUnit.MILLIS)
         return "${selectedEventDate.value.format(DateTimeFormatter.ofPattern(LOCAL_TIME_FORMATTER))}-${
             end.format(
                 DateTimeFormatter.ofPattern(LOCAL_TIME_FORMATTER)
@@ -102,5 +125,11 @@ class CreateEventViewModel(private val repository: com.example.data.IEventReposi
 
     private fun toggleButton() {
         enableCreateButton.value = clientName.value.isNotBlank() && procedureName.value.isNotBlank()
+    }
+
+    companion object {
+        private const val LOCAL_DATE_TIME_FORMATTER = "yyyy-MM-dd HH:mm"
+        private const val LOCAL_DATE_FORMATTER = "yyyy-MM-dd"
+        private const val LOCAL_TIME_FORMATTER = "HH:mm"
     }
 }

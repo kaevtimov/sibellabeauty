@@ -1,10 +1,7 @@
 package com.example.sibellabeauty
 
-import java.time.format.DateTimeFormatter
-
 object Constants {
 
-    const val FIREBASE_DATABASE_URL = "https://sibellabeauty-default-rtdb.europe-west1.firebasedatabase.app/"
     val procedureDurations = mapOf(
         "0:30" to 1_800_000L,
         "0:45" to 2_700_000L,
@@ -22,8 +19,4 @@ object Constants {
         "3:45" to 13_500_000L,
         "4:00" to 14_400_000L
     )
-    const val USER_DEVICE_IDS_SPLIT_DELIMETER = "|"
-    const val LOCAL_DATE_TIME_FORMATTER = "yyyy-MM-dd HH:mm"
-    const val LOCAL_DATE_FORMATTER = "yyyy-MM-dd"
-    const val LOCAL_TIME_FORMATTER = "HH:mm"
 }

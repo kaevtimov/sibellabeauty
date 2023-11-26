@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -27,27 +28,33 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.domain.Outcome
 import com.example.sibellabeauty.dashboard.DashboardActivity
 import com.example.sibellabeauty.R
-import com.example.sibellabeauty.SibellaBeautyApplication
-import com.example.data.FirebaseResponse
 import com.example.sibellabeauty.register.RegisterActivity
 import com.example.sibellabeauty.theme.AppTheme
-import com.example.sibellabeauty.viewModelFactory
 import com.example.sibellabeauty.widgets.LogoWithTitle
 import kotlinx.coroutines.delay
 
 class LoginActivity : AppCompatActivity() {
 
-    private val viewModel: LoginViewModel by viewModelFactory {
-        LoginViewModel((application as SibellaBeautyApplication).usersRepo!!)
-    }
+    private val viewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setObservers()
+
         setContent {
-            AppTheme() {
+            val loginState by viewModel.logInState.collectAsStateWithLifecycle()
+            when (val state = loginState) {
+                is Outcome.Loading -> {}
+                is Outcome.Success -> openHomeScreen()
+                is Outcome.Failure -> {
+                    Toast.makeText(this, state.error, Toast.LENGTH_LONG).show()
+                }
+                else -> {}
+            }
+            AppTheme {
                 LoginScreen()
             }
         }
@@ -273,17 +280,6 @@ class LoginActivity : AppCompatActivity() {
     private enum class TitlePosition {
         TOP,
         MIDDLE
-    }
-
-    private fun setObservers() {
-        viewModel.logIn.observe(this) {
-            if (it is com.example.data.FirebaseResponse.Success) {
-                openHomeScreen()
-            } else {
-                Toast.makeText(this, (it as? com.example.data.FirebaseResponse.Error)?.message, Toast.LENGTH_LONG)
-                    .show()
-            }
-        }
     }
 
     @Composable

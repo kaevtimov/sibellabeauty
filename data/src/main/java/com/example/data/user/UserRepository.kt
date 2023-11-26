@@ -1,28 +1,30 @@
 package com.example.data.user
 
+import com.example.common.di.DeviceManagement
+import com.example.common.di.SecureStore
+import com.example.common.di.USER_KEY_VALUE
 import com.example.data.FirebaseResponse
-import com.example.data.SharedPrefsManager
-import com.example.sibellabeauty.Constants
-import com.example.sibellabeauty.utils.DeviceUtils
+import kotlinx.coroutines.tasks.await
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
 
 
-class UserRepository(private val userDao: UserDao) : IUserRepository {
+class UserRepository @Inject constructor(
+    private val userDao: UserDao,
+    private val firebaseDatabase: DatabaseReference,
+    private val secureStore: SecureStore,
+    private val deviceManagement: DeviceManagement
+) : IUserRepository {
 
-    private val userFirebaseRef =
-        FirebaseDatabase.getInstance(Constants.FIREBASE_DATABASE_URL).reference
-
-    override suspend fun register(user: UserFb): FirebaseResponse<Any>? {
-        userFirebaseRef.keepSynced(true)
+    override suspend fun register(user: UserFb): FirebaseResponse<Any> {
+        firebaseDatabase.keepSynced(true)
         return safeCall {
-            val keyRef: DatabaseReference = userFirebaseRef.push()
+            val keyRef: DatabaseReference = firebaseDatabase.push()
             val key = keyRef.key
             user.id = key
-            userFirebaseRef.child("users").child(key!!).setValue(user).await()
+            firebaseDatabase.child("users").child(key!!).setValue(user).await()
             FirebaseResponse.Success(null)
         }
     }
@@ -34,7 +36,7 @@ class UserRepository(private val userDao: UserDao) : IUserRepository {
     override suspend fun getAllUsers(): List<UserFb> {
         var users = emptyList<UserFb>()
         try {
-            users = userFirebaseRef.child("users").get().await().children.mapNotNull { doc ->
+            users = firebaseDatabase.child("users").get().await().children.mapNotNull { doc ->
                 doc.getValue(UserFb::class.java)
             }
         } catch (exception: Exception) {
@@ -44,39 +46,40 @@ class UserRepository(private val userDao: UserDao) : IUserRepository {
     }
 
     override suspend fun getLoggedInUserForDevice(): UserFb? {
-        val userJson = SharedPrefsManager.getLoggedInUser()
+        val userJson = secureStore.getString(USER_KEY_VALUE, "")
         val loggedInUser = Gson().fromJson<UserFb>(userJson, object : TypeToken<UserFb?>() {}.type) ?: getAllUsers().firstOrNull {
             it.loginState == true
-                    && it.logInDeviceIds?.split(Constants.USER_DEVICE_IDS_SPLIT_DELIMETER)?.contains(
-                DeviceUtils.getDeviceId()
+                    && it.logInDeviceIds?.split(USER_DEVICE_IDS_SPLIT_DELIMETER)?.contains(
+                deviceManagement.getDeviceId()
             ) == true
         }
         return loggedInUser
     }
 
     override suspend fun loginUser(user: UserFb): FirebaseResponse<Any> {
-        userFirebaseRef.keepSynced(true)
-        val newDeviceIdsValue = user.logInDeviceIds.plus("|${DeviceUtils.getDeviceId()}")
+        firebaseDatabase.keepSynced(true)
+        val newDeviceIdsValue = user.logInDeviceIds.plus("|${deviceManagement.getDeviceId()}")
+        secureStore.putString(USER_KEY_VALUE, Gson().toJson(user))
         return safeCall {
-            userFirebaseRef.child("users").child(user.id!!).child("loginState").setValue(true)
+            firebaseDatabase.child("users").child(user.id!!).child("loginState").setValue(true)
                 .await()
-            userFirebaseRef.child("users").child(user.id!!).child("logInDeviceIds").setValue(newDeviceIdsValue)
+            firebaseDatabase.child("users").child(user.id!!).child("logInDeviceIds").setValue(newDeviceIdsValue)
                 .await()
             FirebaseResponse.Success(null)
         }
     }
 
-    override suspend fun logoutUser(): FirebaseResponse<Any>? {
-        val userJson = SharedPrefsManager.getLoggedInUser() ?: return null
-        val user = Gson().fromJson<UserFb>(userJson, object : TypeToken<UserFb?>() {}.type) ?: return null
-        val newDeviceIdsValue = user.logInDeviceIds?.replace("|${DeviceUtils.getDeviceId()}", "")
-        userFirebaseRef.keepSynced(true)
+    override suspend fun logoutUser(): FirebaseResponse<Any> {
+        val userJson = secureStore.getString(USER_KEY_VALUE, "") ?: return FirebaseResponse.Error("Error.")
+        val user = Gson().fromJson<UserFb>(userJson, object : TypeToken<UserFb?>() {}.type) ?: return FirebaseResponse.Error("Error.")
+        val newDeviceIdsValue = user.logInDeviceIds?.replace("|${deviceManagement.getDeviceId()}", "")
+        firebaseDatabase.keepSynced(true)
         return safeCall {
-            userFirebaseRef.child("users").child(user.id!!).child("loginState").setValue(false)
+            firebaseDatabase.child("users").child(user.id!!).child("loginState").setValue(false)
                 .await()
-            userFirebaseRef.child("users").child(user.id!!).child("logInDeviceIds").setValue(newDeviceIdsValue)
+            firebaseDatabase.child("users").child(user.id!!).child("logInDeviceIds").setValue(newDeviceIdsValue)
                 .await()
-            SharedPrefsManager.logoutUser()
+            secureStore.remove(USER_KEY_VALUE)
             FirebaseResponse.Success(null)
         }
     }
@@ -86,17 +89,7 @@ class UserRepository(private val userDao: UserDao) : IUserRepository {
     }
 
     companion object {
-        @Volatile
-        private var instance: UserRepository? = null
-
-        fun getInstance(dao: UserDao): UserRepository? {
-            return instance ?: synchronized(UserRepository::class.java) {
-                if (instance == null) {
-                    instance = UserRepository(dao)
-                }
-                return instance
-            }
-        }
+        private const val USER_DEVICE_IDS_SPLIT_DELIMETER = "|"
     }
 }
 

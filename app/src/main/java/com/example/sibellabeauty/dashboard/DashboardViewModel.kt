@@ -2,31 +2,34 @@ package com.example.sibellabeauty.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.FirebaseResponse
-import com.example.data.UserFb
-import com.example.data.IUserRepository
-import kotlinx.coroutines.Dispatchers
+import com.example.domain.GetEventsByDateUseCase
+import com.example.domain.GetLoggedInUser
+import com.example.domain.Logout
+import com.example.domain.Outcome
+import com.example.domain.RemoveEventUseCase
+import com.example.domain.event.Event
+import com.example.domain.user.User
+import com.example.sibellabeauty.di.IODispatcher
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDate
-
-data class DashboardUiState(
-    var events: ArrayList<com.example.data.EventFb> = ArrayList(),
-    var selectedDate: String = LocalDate.now().toString(),
-    var loggedInUser: com.example.data.UserFb? = null,
-    var message: String? = null,
-    val isLoading: Boolean? = false
-)
 
 private const val ONE_DAY_IN_MILLIS = 1L
 
+@HiltViewModel
 class DashboardViewModel(
-    private val userRepository: com.example.data.IUserRepository,
-    private val eventRepository: com.example.data.IEventRepository
+    private val getEventsByDateUseCase: GetEventsByDateUseCase,
+    private val removeEventUseCase: RemoveEventUseCase,
+    private val getLoggedUser: GetLoggedInUser,
+    private val logoutUseCase: Logout,
+    @IODispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -36,34 +39,36 @@ class DashboardViewModel(
         getEventsByDate()
     }
 
-    fun getLoggedInUser() {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val user = userRepository.getLoggedInUserForDevice()
-
-                _uiState.update {
-                    it.copy(loggedInUser = user)
+    fun getLoggedInUser() = getLoggedUser()
+        .onEach { result ->
+            when (result) {
+                is Outcome.Success -> _uiState.update {
+                    it.copy(loggedInUser = result.data)
                 }
+
+                is Outcome.Failure -> Unit
+                is Outcome.Loading -> Unit
             }
         }
-    }
+        .flowOn(ioDispatcher)
+        .launchIn(viewModelScope)
 
-    fun logout() {
-        viewModelScope.launch {
-            val response = withContext(Dispatchers.IO) {
-                userRepository.logoutUser()
-            }
-            if (response is com.example.data.FirebaseResponse.Success) {
-                _uiState.update {
+    fun logout() = logoutUseCase()
+        .onEach { result ->
+            when (result) {
+                is Outcome.Success -> _uiState.update {
                     it.copy(loggedInUser = null)
                 }
-            } else {
-                _uiState.update {
+
+                is Outcome.Failure -> _uiState.update {
                     it.copy(message = "Error logout.")
                 }
+
+                is Outcome.Loading -> Unit
             }
         }
-    }
+        .flowOn(ioDispatcher)
+        .launchIn(viewModelScope)
 
     fun setSelectedDate(date: String) {
         _uiState.update {
@@ -72,44 +77,69 @@ class DashboardViewModel(
         getEventsByDate()
     }
 
-    fun getEventsByDate() {
-        _uiState.update {
-            it.copy(isLoading = true)
-        }
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val events = eventRepository.getEventsByDate(_uiState.value.selectedDate)
+    fun getEventsByDate() = getEventsByDateUseCase(_uiState.value.selectedDate)
+        .onEach { events ->
+            when (events) {
+                is Outcome.Success -> _uiState.update {
+                    it.copy(events = it.events, isLoading = false)
+                }
 
-                _uiState.update {
-                    it.copy(events = events, isLoading = false)
+                is Outcome.Failure -> {}
+                is Outcome.Loading -> _uiState.update {
+                    it.copy(isLoading = true)
                 }
             }
         }
-    }
+        .flowOn(ioDispatcher)
+        .launchIn(viewModelScope)
 
-    fun removeEvent(event: com.example.data.EventFb) {
-        viewModelScope.launch {
-            val response = withContext(Dispatchers.IO) {
-                eventRepository.removeEvent(event)
-            }
-            getEventsByDate()
-            _uiState.update {
-                it.copy(message = (response as? com.example.data.FirebaseResponse.Success)?.data ?: "Error removing event.")
+    fun removeEvent(event: Event) = removeEventUseCase(event)
+        .onEach {
+            when (it) {
+                is Outcome.Success -> {
+                    _uiState.update {
+                        it.copy(message = it.message, isLoading = false)
+                    }
+                    getEventsByDate()
+                }
+
+                is Outcome.Failure -> _uiState.update {
+                    it.copy(message = it.message, isLoading = false)
+                }
+
+                is Outcome.Loading -> _uiState.update {
+                    it.copy(isLoading = true)
+                }
             }
         }
-    }
+        .flowOn(ioDispatcher)
+        .launchIn(viewModelScope)
 
     fun onNextDay() {
         _uiState.update {
-            it.copy(selectedDate = LocalDate.parse(_uiState.value.selectedDate).plusDays(ONE_DAY_IN_MILLIS).toString())
+            it.copy(
+                selectedDate = LocalDate.parse(_uiState.value.selectedDate)
+                    .plusDays(ONE_DAY_IN_MILLIS).toString()
+            )
         }
         getEventsByDate()
     }
 
     fun onPrevDay() {
         _uiState.update {
-            it.copy(selectedDate = LocalDate.parse(_uiState.value.selectedDate).minusDays(ONE_DAY_IN_MILLIS).toString())
+            it.copy(
+                selectedDate = LocalDate.parse(_uiState.value.selectedDate)
+                    .minusDays(ONE_DAY_IN_MILLIS).toString()
+            )
         }
         getEventsByDate()
     }
 }
+
+data class DashboardUiState(
+    var events: ArrayList<Event> = ArrayList(),
+    var selectedDate: String = LocalDate.now().toString(),
+    var loggedInUser: User? = null,
+    var message: String? = null,
+    val isLoading: Boolean? = false
+)

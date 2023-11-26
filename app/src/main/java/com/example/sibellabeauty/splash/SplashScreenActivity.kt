@@ -2,6 +2,7 @@ package com.example.sibellabeauty.splash
 
 import android.content.Intent
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -14,26 +15,40 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.example.common.di.DeviceManagement
 import com.example.sibellabeauty.NavigationEvent
-import com.example.sibellabeauty.SibellaBeautyApplication
 import com.example.sibellabeauty.dashboard.DashboardActivity
 import com.example.sibellabeauty.login.LoginActivity
 import com.example.sibellabeauty.theme.AppTheme
-import com.example.sibellabeauty.viewModelFactory
 import com.example.sibellabeauty.widgets.LogoWithTitle
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class SplashScreenActivity : AppCompatActivity() {
 
-    private val viewModel: SplashViewModel by viewModelFactory {
-        SplashViewModel((application as SibellaBeautyApplication).usersRepo!!)
-    }
+    private val viewModel: SplashViewModel by viewModels()
+
+    @Inject
+    lateinit var deviceManagement: DeviceManagement
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
-        setObservers()
+        launchOnLifecycle(state = Lifecycle.State.CREATED) { launch { deviceManagement.generateInstallationId() } }
         setContent {
-            AppTheme() {
+            val navigation by viewModel.navigateTo.collectAsStateWithLifecycle()
+            when (navigation) {
+                NavigationEvent.LOGIN_SCREEN -> openLogin()
+                else -> openDashboardScreen()
+            }
+            AppTheme {
                 Surface {
                     SplashScreen()
                 }
@@ -74,16 +89,6 @@ class SplashScreenActivity : AppCompatActivity() {
         }
     }
 
-    private fun setObservers() {
-        viewModel.navigateTo.observe(this) {
-            if (it == NavigationEvent.LOGIN_SCREEN) {
-                openLogin()
-            } else {
-                openDashboardScreen()
-            }
-        }
-    }
-
     private fun openDashboardScreen() {
         startActivity(Intent(this, DashboardActivity::class.java))
         finish()
@@ -93,5 +98,15 @@ class SplashScreenActivity : AppCompatActivity() {
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
     }
+}
 
+fun AppCompatActivity.launchOnLifecycle(
+    state: Lifecycle.State = Lifecycle.State.STARTED,
+    block: suspend CoroutineScope.() -> Unit,
+) {
+    lifecycleScope.launch {
+        repeatOnLifecycle(state) {
+            block()
+        }
+    }
 }
