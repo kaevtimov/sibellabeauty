@@ -30,6 +30,7 @@ fun SbTheme(
     CompositionLocalProvider(
         LocalSbColors provides colors,
         LocalSbTypography provides typography,
+        LocalDimensions provides SbDimensions
     ) {
         MaterialTheme(
             colorScheme = materialColorPalette(darkTheme),

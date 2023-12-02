@@ -1,4 +1,4 @@
-package com.example.domain.user
+package com.example.domain.model
 
 import com.example.data.user.UserFb
 

@@ -4,14 +4,14 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.domain.GetEventsByDateUseCase
-import com.example.domain.GetLoggedInUser
-import com.example.domain.Logout
+import com.example.domain.event.GetEventsByDateUseCase
+import com.example.domain.user.GetLoggedInUserUseCase
+import com.example.domain.user.LogoutUseCase
 import com.example.domain.Outcome
-import com.example.domain.RemoveEventUseCase
-import com.example.domain.event.Event
-import com.example.domain.user.User
+import com.example.domain.event.RemoveEventUseCase
+import com.example.domain.model.Event
 import com.evtimov.ui.di.IODispatcher
+import com.example.domain.DateTimeConvertionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,17 +20,15 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import java.time.LocalDate
 import javax.inject.Inject
-
-private const val ONE_DAY_IN_MILLIS = 1L
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val getEventsByDateUseCase: GetEventsByDateUseCase,
     private val removeEventUseCase: RemoveEventUseCase,
-    private val getLoggedUser: GetLoggedInUser,
-    private val logoutUseCase: Logout,
+    private val getLoggedUser: GetLoggedInUserUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val dateTimeConvertionUseCase: DateTimeConvertionUseCase,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel(), DefaultLifecycleObserver {
 
@@ -46,15 +44,30 @@ class DashboardViewModel @Inject constructor(
         getEventsByDate()
     }
 
+    fun onFinishNavigate() = _uiState.update {
+        it.copy(
+            navigateToLogin = false
+        )
+    }
+
+    fun consumeError() = _uiState.update {
+        it.copy(error = null)
+    }
+
     private fun getLoggedInUser() = getLoggedUser()
         .onEach { result ->
             when (result) {
                 is Outcome.Success -> _uiState.update {
-                    it.copy(loggedInUser = result.data)
+                    it.copy(isLoading = false)
                 }
 
-                is Outcome.Failure -> Unit
-                is Outcome.Loading -> Unit
+                is Outcome.Failure -> _uiState.update {
+                    it.copy(isLoading = false, navigateToLogin = true)
+                }
+
+                is Outcome.Loading -> _uiState.update {
+                    it.copy(isLoading = true)
+                }
             }
         }
         .flowOn(ioDispatcher)
@@ -64,11 +77,11 @@ class DashboardViewModel @Inject constructor(
         .onEach { result ->
             when (result) {
                 is Outcome.Success -> _uiState.update {
-                    it.copy(loggedInUser = null)
+                    it.copy(navigateToLogin = true)
                 }
 
                 is Outcome.Failure -> _uiState.update {
-                    it.copy(message = "Error logout.")
+                    it.copy(error = "Error logout.")
                 }
 
                 is Outcome.Loading -> Unit
@@ -112,13 +125,13 @@ class DashboardViewModel @Inject constructor(
             when (it) {
                 is Outcome.Success -> {
                     _uiState.update {
-                        it.copy(message = it.message, isLoading = false)
+                        it.copy(error = it.error, isLoading = false)
                     }
                     getEventsByDate()
                 }
 
                 is Outcome.Failure -> _uiState.update {
-                    it.copy(message = it.message, isLoading = false)
+                    it.copy(error = it.error, isLoading = false)
                 }
 
                 is Outcome.Loading -> _uiState.update {
@@ -131,20 +144,14 @@ class DashboardViewModel @Inject constructor(
 
     fun onNextDay() {
         _uiState.update {
-            it.copy(
-                selectedDate = LocalDate.parse(it.selectedDate)
-                    .plusDays(ONE_DAY_IN_MILLIS).toString()
-            )
+            it.copy(selectedDate = dateTimeConvertionUseCase.nextDay(it.selectedDate))
         }
         getEventsByDate()
     }
 
     fun onPrevDay() {
         _uiState.update {
-            it.copy(
-                selectedDate = LocalDate.parse(it.selectedDate)
-                    .minusDays(ONE_DAY_IN_MILLIS).toString()
-            )
+            it.copy(selectedDate = dateTimeConvertionUseCase.previousDay(it.selectedDate))
         }
         getEventsByDate()
     }
@@ -152,8 +159,8 @@ class DashboardViewModel @Inject constructor(
 
 data class DashboardUiState(
     val events: List<Event> = emptyList(),
-    val selectedDate: String = LocalDate.now().toString(),
-    val loggedInUser: User? = null,
-    val message: String? = null,
-    val isLoading: Boolean? = false
+    val selectedDate: String = DateTimeConvertionUseCase().toCurrentUiDate(),
+    val error: String? = null,
+    val isLoading: Boolean? = false,
+    val navigateToLogin: Boolean? = false
 )

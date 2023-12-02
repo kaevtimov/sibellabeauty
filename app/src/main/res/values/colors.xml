@@ -8,4 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="launcher_background_color">#F0AA20</color>
+    <color name="launcher_background_color_start">#FF3A68</color>
+    <color name="launcher_background_color_end">#ffbc9c</color>
 </resources>

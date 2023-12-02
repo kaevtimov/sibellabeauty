@@ -1,4 +1,4 @@
-package com.example.domain.event
+package com.example.domain.model
 
 import com.example.data.event.EventFb
 

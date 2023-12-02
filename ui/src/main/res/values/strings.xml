@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SibellaBeauty</string>
+    <string name="one_word_title">Sibella</string>
+    <string name="login_title">Login</string>
+    <string name="login_username">Username</string>
+    <string name="login_password">Password</string>
+    <string name="login_register_label">Register</string>
+    <string name="register_title">Register</string>
+    <string name="register_label">Register</string>
+    <string name="register_username">Username</string>
+    <string name="register_password">Password</string>
+    <string name="register_confirm_password">Password</string>
+    <string name="dashboard_name_label">Name: %s</string>
+    <string name="dashboard_procedure_label">Procedure: %s</string>
+    <string name="dashboard_no_items">No items for today</string>
+    <string name="create_client_name_label">Client name</string>
+    <string name="create_procedure_label">Procedure</string>
+    <string name="create_duration_label">Duration</string>
+    <string name="button_ready_label">Ready</string>
+</resources>

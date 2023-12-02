@@ -2,10 +2,12 @@ package com.evtimov.ui.splash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.evtimov.ui.Routes
-import com.example.domain.GetLoggedInUser
+import com.evtimov.ui.DashboardScreen
+import com.evtimov.ui.LoginScreen
+import com.evtimov.ui.Route
+import com.example.domain.user.GetLoggedInUserUseCase
 import com.example.domain.Outcome
-import com.example.domain.user.User
+import com.example.domain.model.User
 import com.evtimov.ui.di.IODispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,25 +22,29 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SplashViewModel @Inject constructor(
-    private val getLoggedUser: GetLoggedInUser,
+    private val getLoggedUser: GetLoggedInUserUseCase,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    private var _navigateTo = MutableStateFlow<Routes?>(null)
-    val navigateTo: StateFlow<Routes?> = _navigateTo.asStateFlow()
+    private var _navigateTo = MutableStateFlow<Route?>(null)
+    val navigateTo: StateFlow<Route?> = _navigateTo.asStateFlow()
 
     fun manageUserLoginState() = getLoggedUser()
         .onEach(::emitUiResult)
         .flowOn(ioDispatcher)
         .launchIn(viewModelScope)
 
+    fun onFinishNavigate() {
+        _navigateTo.update { null }
+    }
+
     private fun emitUiResult(result: Outcome<User>) =
         when (result) {
             is Outcome.Success -> _navigateTo.update {
-                Routes.DASHBOARD
+                DashboardScreen
             }
             is Outcome.Failure -> _navigateTo.update {
-                Routes.LOGIN
+                LoginScreen
             }
             is Outcome.Loading -> Unit
         }

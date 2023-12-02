@@ -25,8 +25,8 @@ internal val LightNeutral300 = Color(0xFFFFFFFF)
 internal val LightNeutral200 = Color(0x80FFFFFF)
 
 // Gradient colors
-internal val LightGradientOrangeStart = Color(0xFFFF8B3E)
-internal val LightGradientOrangeEnd = Color(0xFFFF3A68)
+internal val LightGradientOrangeStart = Color(0xFFFF3A68)
+internal val LightGradientOrangeEnd = Color(0xFFffbc9c)
 
 // Alert colors
 internal val DarkAlertError = Color(0xFFFF6F67)

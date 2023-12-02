@@ -1,16 +1,14 @@
 package com.evtimov.ui.login
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.domain.LoginUser
+import com.example.domain.user.LoginUserUseCase
 import com.example.domain.Outcome
 import com.evtimov.ui.di.IODispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -19,46 +17,81 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val loginUser: LoginUser,
+    private val loginUser: LoginUserUseCase,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher
 ): ViewModel() {
 
-    private var _logInState = MutableStateFlow<Outcome<Unit>?>(null)
-    val logInState: StateFlow<Outcome<Unit>?> = _logInState.asStateFlow()
-
-    var username = mutableStateOf("")
-    var password = mutableStateOf("")
-    var enableLoginButton = mutableStateOf(false)
+    private var _uiState = MutableStateFlow(LoginUiState())
+    val uiState: StateFlow<LoginUiState> = _uiState
 
     fun setUsername(username: String) {
-        this.username.value = username
+        _uiState.update {
+            it.copy(
+                username = username
+            )
+        }
         toggleButton()
     }
 
     fun setPassword(password: String) {
-        this.password.value = password
+        _uiState.update {
+            it.copy(
+                password = password
+            )
+        }
         toggleButton()
     }
 
-    fun tryLogin() = loginUser(username.value, password.value)
+    fun tryLogin() = loginUser(_uiState.value.username, _uiState.value.password)
         .onEach(::emitUiResult)
         .flowOn(ioDispatcher)
         .launchIn(viewModelScope)
 
+    fun onFinishNavigate() = _uiState.update {
+        it.copy(
+            navigateToDashboard = false
+        )
+    }
+
     private fun emitUiResult(result: Outcome<Unit>) =
         when (result) {
-            is Outcome.Success -> _logInState.update {
-                Outcome.Success(Unit)
+            is Outcome.Success -> _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    navigateToDashboard = true
+                )
             }
-            is Outcome.Failure -> _logInState.update {
-                Outcome.Failure(result.error)
+            is Outcome.Failure -> _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    error = result.error
+                )
             }
-            is Outcome.Loading -> _logInState.update {
-                Outcome.Loading()
+            is Outcome.Loading -> _uiState.update {
+                it.copy(
+                    isLoading = true
+                )
             }
         }
 
     private fun toggleButton() {
-        this.enableLoginButton.value = username.value.isNotBlank() && password.value.isNotBlank()
+        _uiState.update {
+            it.copy(
+                buttonEnabled = it.username.isNotBlank() && it.password.isNotBlank()
+            )
+        }
+    }
+
+    fun consumeError() = _uiState.update {
+        it.copy(error = null)
     }
 }
+
+data class LoginUiState(
+    val isLoading: Boolean = false,
+    val buttonEnabled: Boolean = true,
+    val username: String = "",
+    val password: String = "",
+    val navigateToDashboard: Boolean = false,
+    val error: String? = null
+)

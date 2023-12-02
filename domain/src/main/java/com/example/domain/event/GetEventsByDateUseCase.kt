@@ -1,8 +1,9 @@
-package com.example.domain
+package com.example.domain.event
 
 import com.example.data.event.IEventRepository
-import com.example.domain.event.Event
-import com.example.domain.event.mapToDomain
+import com.example.domain.Outcome
+import com.example.domain.model.Event
+import com.example.domain.model.mapToDomain
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject

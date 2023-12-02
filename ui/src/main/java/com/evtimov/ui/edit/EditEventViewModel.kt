@@ -1,41 +1,46 @@
-package com.evtimov.ui.create
+package com.evtimov.ui.edit
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.evtimov.ui.Constants
 import com.evtimov.ui.Constants.procedureDurations
-import com.example.domain.event.CreateEventUseCase
-import com.example.domain.user.GetLoggedInUserUseCase
-import com.example.domain.Outcome
-import com.example.domain.model.Event
+import com.evtimov.ui.EditScreen
 import com.evtimov.ui.di.IODispatcher
 import com.example.domain.DateTimeConvertionUseCase
+import com.example.domain.event.EditEventUseCase
+import com.example.domain.event.GetEventUseCase
+import com.example.domain.Outcome
+import com.example.domain.model.Event
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
-class CreateEventViewModel @Inject constructor(
-    private val createEventUseCase: CreateEventUseCase,
-    private val getLoggedUser: GetLoggedInUserUseCase,
+class EditEventViewModel @Inject constructor(
+    private val editEventUseCase: EditEventUseCase,
+    private val getEventUseCase: GetEventUseCase,
+    savedStateHandle: SavedStateHandle,
     private val dateTimeConvertionUseCase: DateTimeConvertionUseCase,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    private var _uiState = MutableStateFlow(CreateEventUiState())
-    val uiState: StateFlow<CreateEventUiState> = _uiState
+    private val _uiState = MutableStateFlow(EditEventUiState())
+    val uiState: StateFlow<EditEventUiState> = _uiState
+
+    private val eventId: String? = savedStateHandle[EditScreen.argument]
+
+    init {
+        getEvent()
+    }
 
     fun setClientName(name: String) {
         _uiState.update {
@@ -43,7 +48,6 @@ class CreateEventViewModel @Inject constructor(
                 clientName = name
             )
         }
-        toggleButton()
     }
 
     fun setDuration(durationNew: String) {
@@ -60,7 +64,6 @@ class CreateEventViewModel @Inject constructor(
                 procedureName = procedure
             )
         }
-        toggleButton()
     }
 
     fun setSelectedDate(year: Int, month: Int, day: Int) {
@@ -83,57 +86,36 @@ class CreateEventViewModel @Inject constructor(
         }
     }
 
-    fun consumeError() = _uiState.update {
-        it.copy(error = null)
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun createEvent() = getLoggedUser()
-        .filter { it is Outcome.Success }
-        .flatMapLatest { outcome ->
-            _uiState.update {
-                it.copy(
-                    loggedInUsername = (outcome as? Outcome.Success)?.data?.username.orEmpty()
-                )
-            }
-            createEventUseCase(getEventToAdd())
-        }
+    fun editEvent() = editEventUseCase(eventToUpdate())
         .onEach { result ->
             when (result) {
                 is Outcome.Success -> _uiState.update {
                     it.copy(
-                        isLoading = false,
-                        eventReady = true
+                        eventReady = true,
+                        isLoading = false
                     )
                 }
 
-                is Outcome.Failure -> _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        eventReady = false,
-                        error = result.error
-                    )
-                }
-
-                is Outcome.Loading -> _uiState.update {
-                    it.copy(
-                        isLoading = true,
-                        eventReady = false
-                    )
-                }
+                is Outcome.Failure -> _uiState.update { it.copy(isLoading = false) }
+                is Outcome.Loading -> _uiState.update { it.copy(isLoading = true) }
             }
         }
         .flowOn(ioDispatcher)
         .launchIn(viewModelScope)
 
-    private fun getEventToAdd() = Event(
+    private fun eventToUpdate() = Event(
+        id = eventId.orEmpty(),
         name = _uiState.value.clientName,
         date = dateTimeConvertionUseCase.toServerDateTime(_uiState.value.selectedEventDate),
         duration = procedureDurations[_uiState.value.duration],
         procedure = _uiState.value.procedureName,
-        timeLapseString = formatTimeLapse(),
-        user = _uiState.value.loggedInUsername
+        timeLapseString = formatTimeLapse()
     )
+
+    fun consumeError() = _uiState.update {
+        it.copy(error = null)
+    }
+
 
     private fun formatTimeLapse(): String {
         val end =
@@ -147,26 +129,47 @@ class CreateEventViewModel @Inject constructor(
         }"
     }
 
-    private fun toggleButton() {
-        _uiState.update {
-            it.copy(
-                enableCreateButton = it.clientName.isNotBlank() && it.procedureName.isNotBlank()
-            )
+    private fun getEvent() {
+        eventId?.let {
+            getEventUseCase(it)
+                .onEach { result ->
+                    when (result) {
+                        is Outcome.Success -> {
+                            val eventDate = dateTimeConvertionUseCase.toRawServerDate(result.data.date.orEmpty())
+                            _uiState.update {
+                                it.copy(
+                                    clientName = result.data.name.orEmpty(),
+                                    procedureName = result.data.procedure.orEmpty(),
+                                    selectedEventDate = eventDate,
+                                    duration = procedureDurations.filterValues {
+                                        it == result.data.duration
+                                    }.keys.first(),
+                                    selectedEventDateUi = dateTimeConvertionUseCase.toUiDate(eventDate),
+                                    selectedEventTimeUi = dateTimeConvertionUseCase.toUiDateTime(eventDate),
+                                    isLoading = false
+                                )
+                            }
+                        }
+
+                        is Outcome.Failure -> _uiState.update { it.copy(isLoading = false) }
+                        is Outcome.Loading -> _uiState.update { it.copy(isLoading = true) }
+                    }
+                }
+                .flowOn(ioDispatcher)
+                .launchIn(viewModelScope)
         }
     }
 }
 
-data class CreateEventUiState(
+data class EditEventUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val eventReady: Boolean = false,
     val clientName: String = "",
     val procedureName: String = "",
-    val enableCreateButton: Boolean = false,
     val selectedEventDate: LocalDateTime = LocalDateTime.now(),
-    val loggedInUsername: String = "",
     val procedureDurations: List<String> = Constants.procedureDurations.keys.toList(),
     val duration: String = procedureDurations[0],
-    val selectedEventTimeUi: String = DateTimeConvertionUseCase().toCurrentUiDateTime(),
-    val selectedEventDateUi: String = DateTimeConvertionUseCase().toCurrentUiDate()
+    val selectedEventTimeUi: String = "",
+    val selectedEventDateUi: String = ""
 )

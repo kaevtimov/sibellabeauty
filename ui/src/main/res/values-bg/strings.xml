@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SibellaBeauty</string>
+    <string name="one_word_title">Sibella</string>
+    <string name="login_title">Вход</string>
+    <string name="login_username">Потребителско име</string>
+    <string name="login_password">Парола</string>
+    <string name="login_register_label">Регистрация</string>
+    <string name="register_title">Регистрация</string>
+    <string name="register_label">Регистрация</string>
+    <string name="register_username">Потребителско име</string>
+    <string name="register_password">Парола</string>
+    <string name="register_confirm_password">Повтори Парола</string>
+    <string name="dashboard_name_label">Клиент: %s</string>
+    <string name="dashboard_procedure_label">Процедура: %s</string>
+    <string name="dashboard_no_items">Няма събития</string>
+    <string name="create_client_name_label">Име наклиент</string>
+    <string name="create_procedure_label">Процедура</string>
+    <string name="create_duration_label">Времетраене</string>
+    <string name="button_ready_label">Готово</string>
+</resources>

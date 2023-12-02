@@ -61,5 +61,7 @@ dependencies {
     implementation(libs.google.firebase.installations)
     implementation(libs.google.firebase.common)
     implementation(libs.bundles.compose)
+    implementation(libs.androidx.splashscreen)
+    implementation(libs.compose.accompanist.systemcontroller)
     implementation(project(":ui"))
 }

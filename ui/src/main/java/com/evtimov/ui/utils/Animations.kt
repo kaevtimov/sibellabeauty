@@ -41,18 +41,14 @@ fun Pulsating(modifier: Modifier, pulseFraction: Float = 1.2f, content: @Composa
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun EnlargingWidget(content: @Composable() () -> Unit, onLongClick: () -> Unit) {
+fun EnlargingWidget(content: @Composable () -> Unit, onLongClick: () -> Unit) {
     val selected = remember { mutableStateOf(false) }
     val scale = animateFloatAsState(if (selected.value) 1.1f else 1f)
 
     Box(
         modifier = Modifier
-            .combinedClickable(
-                onClick = { },
-                onLongClick = { onLongClick() },
-            )
             .scale(scale.value)
             .wrapContentWidth()
             .wrapContentHeight()
@@ -60,7 +56,7 @@ fun EnlargingWidget(content: @Composable() () -> Unit, onLongClick: () -> Unit) 
                 when (it.action) {
                     MotionEvent.ACTION_DOWN -> {
                         selected.value = true
-
+                        onLongClick()
                     }
 
                     MotionEvent.ACTION_UP  -> {

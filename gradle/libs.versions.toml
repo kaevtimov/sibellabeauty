@@ -88,6 +88,7 @@ google-firebase-analytics = { module = "com.google.firebase:firebase-analytics-k
 google-firebase-config = { module = "com.google.firebase:firebase-config-ktx" }
 google-firebase-common = { module = "com.google.firebase:firebase-common-ktx" }
 google-firebase-database = { module = "com.google.firebase:firebase-database-ktx" }
+google-firebase-auth = { module = "com.google.firebase:firebase-auth" }
 google-android-material = { module = "com.google.android.material:material", version.ref = "material" }
 google-code-gson = { module = "com.google.code.gson:gson", version = "2.10.1" }
 

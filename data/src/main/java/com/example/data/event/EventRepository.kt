@@ -20,6 +20,20 @@ class EventRepository @Inject constructor(
     private val secureStore: SecureStore,
 ) : IEventRepository {
 
+    override suspend fun getEvent(id: String): FirebaseResponse<EventFb> {
+        return try {
+            firebaseDatabase.child("events").get().await().children.mapNotNull { doc ->
+                doc.getValue(EventFb::class.java)
+            }.firstOrNull {
+                it.id == id
+            }?.let {
+                FirebaseResponse.Success(it)
+            } ?: FirebaseResponse.Error("Event was not found!")
+        } catch (exception: Exception) {
+            FirebaseResponse.Error("Event was not found!")
+        }
+    }
+
     override suspend fun getEventsByDate(date: String): ArrayList<EventFb> {
         val events = ArrayList<EventFb>()
         try {
@@ -71,8 +85,13 @@ class EventRepository @Inject constructor(
         return FirebaseResponse.Success("Event removed.")
     }
 
-    override suspend fun editEvent(event: EventFb) {
-        firebaseDatabase.child("events").child(event.id!!).setValue(event)
+    override suspend fun editEvent(event: EventFb): FirebaseResponse<String> {
+        val loggedUser = Gson().fromJson<UserFb>(
+            secureStore.getString(USER_KEY_VALUE, ""),
+            object : TypeToken<UserFb?>() {}.type
+        )?.username
+        firebaseDatabase.child("events").child(event.id!!).setValue(event.copy(user = loggedUser))
+        return FirebaseResponse.Success("Event edited.")
     }
 
     override suspend fun checkEventSlotAvailability(event: EventFb): Boolean {

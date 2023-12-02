@@ -1,122 +1,114 @@
 package com.evtimov.ui.create
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.content.Context
-import android.widget.DatePicker
-import android.widget.Toast
-import androidx.compose.foundation.Image
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ExposedDropdownMenuBox
 import androidx.compose.material.ExposedDropdownMenuDefaults
-import androidx.compose.material.ExtendedFloatingActionButton
-import androidx.compose.material.Icon
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.evtimov.ui.R
+import com.evtimov.ui.theme.LocalSbGradients
+import com.evtimov.ui.theme.LocalSbTypography
+import com.evtimov.ui.widgets.DatePickerEvent
 import com.evtimov.ui.widgets.LoadingWidget
-import com.example.domain.Outcome
-import java.time.LocalDateTime
+import com.evtimov.ui.widgets.SbBottomSheet
+import com.evtimov.ui.widgets.SbBottomSheetValue
+import com.evtimov.ui.widgets.SbSnackBarVisuals
+import com.evtimov.ui.widgets.TimePickerEvent
+import com.evtimov.ui.widgets.rememberSbBottomSheetState
+import com.evtimov.ui.widgets.rememberVbSnackBarState
+import kotlinx.coroutines.launch
 
 @Composable
 fun CreateEventScreen(
-    onEventCreated: () -> Unit
+    onEventCreated: () -> Unit,
+    navigateBack: () -> Unit
 ) {
+    BackHandler {
+        navigateBack()
+    }
     val viewModel: CreateEventViewModel = hiltViewModel()
 
-    val outcome by viewModel.addEventOutcome.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    when (outcome) {
-        is Outcome.Failure -> Toast.makeText(
-            context,
-            (outcome as Outcome.Failure<String>).error,
-            Toast.LENGTH_SHORT
-        ).show()
+    val snackbarState = rememberVbSnackBarState()
+    val coroutineScope = rememberCoroutineScope()
 
-        is Outcome.Success -> {
-            Toast.makeText(
-                context,
-                (outcome as Outcome.Success<String>).data,
-                Toast.LENGTH_SHORT
-            ).show()
-            onEventCreated()
+    LaunchedEffect(key1 = uiState.error) {
+        uiState.error?.let {
+            coroutineScope.launch {
+                snackbarState.showSnackBar(
+                    SbSnackBarVisuals(message = it)
+                )
+            }
+            viewModel.consumeError()
         }
-
-        else -> {}
     }
+    if (uiState.eventReady) onEventCreated()
+
     Content(
-        loadingState = outcome is Outcome.Loading,
-        clientName = viewModel.clientName.value,
-        procedure = viewModel.procedureName.value,
-        selectedEventDate = viewModel.selectedEventDate.value,
+        state = uiState,
         onSetClientName = { viewModel.setClientName(it) },
         onSetProcedure = { viewModel.setProcedure(it) },
         onDateSelected = { year, month, day -> viewModel.setSelectedDate(year, month, day) },
-        selectedEventTimeUi = viewModel.selectedEventTimeUi.value,
         onTimeSelected = { hour, minutes -> viewModel.setSelectedTime(hour, minutes) },
-        options = viewModel.procedureDurations.keys.toList(),
-        durationUi = viewModel.duration.value,
         onSetDuration = { viewModel.setDuration(it) },
-        buttonEnabled = viewModel.enableCreateButton.value,
         onCreateEvent = { viewModel.createEvent() },
-        selectedEventDateUi = viewModel.selectedEventDateUi.value
     )
 }
 
 @Composable
 fun Content(
-    loadingState: Boolean = false,
-    clientName: String,
-    procedure: String,
-    selectedEventDate: LocalDateTime,
-    selectedEventDateUi: String,
+    state: CreateEventUiState,
     onSetClientName: (String) -> Unit,
     onSetProcedure: (String) -> Unit,
     onDateSelected: (Int, Int, Int) -> Unit,
-    selectedEventTimeUi: String,
     onTimeSelected: (Int, Int) -> Unit,
-    options: List<String>,
-    durationUi: String,
     onSetDuration: (String) -> Unit,
-    buttonEnabled: Boolean,
     onCreateEvent: () -> Unit
 ) {
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8DEB8))
+            .background(LocalSbGradients.current.gradientBackgroundVerticalLight)
+            .navigationBarsPadding()
+            .statusBarsPadding()
+            .padding(all = 32.dp)
     ) {
         val (loading, input, date, time, duration, button) = createRefs()
 
@@ -125,9 +117,10 @@ fun Content(
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
+                width = Dimension.fillToConstraints
             },
-            clientName = clientName,
-            procedure = procedure,
+            clientName = state.clientName,
+            procedure = state.procedureName,
             onSetClientName = onSetClientName,
             onSetProcedure = onSetProcedure
         )
@@ -138,8 +131,8 @@ fun Content(
                 end.linkTo(input.end)
                 width = Dimension.fillToConstraints
             },
-            selectedEventDate = selectedEventDate,
-            selectedEventDateUi = selectedEventDateUi,
+            selectedEventDate = state.selectedEventDate,
+            selectedEventDateUi = state.selectedEventDateUi,
             onDateSelected = onDateSelected
         )
         TimePickerEvent(
@@ -149,8 +142,8 @@ fun Content(
                 end.linkTo(input.end)
                 width = Dimension.fillToConstraints
             },
-            selectedEventDate = selectedEventDate,
-            selectedEventTimeUi = selectedEventTimeUi,
+            selectedEventDate = state.selectedEventDate,
+            selectedEventTimeUi = state.selectedEventTimeUi,
             onTimeSelected = onTimeSelected
         )
         ProcedureDurationSpinner(
@@ -159,8 +152,8 @@ fun Content(
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
             },
-            options = options,
-            duration = durationUi,
+            options = state.procedureDurations,
+            duration = state.duration,
             onSetDuration = onSetDuration
         )
         ReadyButton(
@@ -169,11 +162,11 @@ fun Content(
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
             },
-            enableButton = buttonEnabled,
-            onCreateEvent = onCreateEvent
+            enableButton = state.enableCreateButton,
+            onClick = onCreateEvent
         )
         LoadingScreen(
-            loading = loadingState,
+            loading = state.isLoading,
             modifier = Modifier.constrainAs(loading) {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
@@ -196,46 +189,47 @@ fun ClientProcedureInput(
 ) {
     Column(
         modifier = modifier
-            .padding(24.dp)
             .wrapContentHeight()
+            .fillMaxWidth()
     ) {
         OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
             value = clientName,
-            textStyle = TextStyle(
-                color = Color.White,
-                fontSize = 18.sp
+            textStyle = LocalSbTypography.current.bodyLarge.copy(color = Color.Black),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                textColor = Color.Black,
+                placeholderColor = Color.Black,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Black,
+                backgroundColor = Color.White,
+                cursorColor = Color.Black,
+                focusedBorderColor = Color(0xFFFFEB3B),
+                unfocusedBorderColor = Color(0xFFFFEB3B)
             ),
+            shape = RoundedCornerShape(32.dp),
             onValueChange = { onSetClientName(it) },
-            label = { Text(text = "Client name") },
-            leadingIcon = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_baseline_add_reaction_24),
-                    contentDescription = "username_icon"
-                )
-            },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFF498EF7),
-                unfocusedBorderColor = Color(0xFF5E82EE)
-            )
+            label = { Text(text = stringResource(id = R.string.create_client_name_label)) },
         )
+        Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
             value = procedure,
-            textStyle = TextStyle(
-                color = Color.White,
-                fontSize = 18.sp
-            ),
-            onValueChange = { onSetProcedure(it) },
-            label = { Text(text = "Procedure") },
-            leadingIcon = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_round_airline_seat_recline_normal_24),
-                    contentDescription = "password_icon"
-                )
-            },
+            textStyle = LocalSbTypography.current.bodyLarge.copy(color = Color.Black),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFF498EF7),
-                unfocusedBorderColor = Color(0xFF5E82EE)
-            )
+                textColor = Color.Black,
+                placeholderColor = Color.Black,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Black,
+                backgroundColor = Color.White,
+                cursorColor = Color.Black,
+                focusedBorderColor = Color(0xFFFFEB3B),
+                unfocusedBorderColor = Color(0xFFFFEB3B)
+            ),
+            shape = RoundedCornerShape(32.dp),
+            onValueChange = { onSetProcedure(it) },
+            label = {
+                Text(text = stringResource(id = R.string.create_procedure_label))
+            },
         )
     }
 }
@@ -244,54 +238,22 @@ fun ClientProcedureInput(
 fun ReadyButton(
     modifier: Modifier = Modifier,
     enableButton: Boolean,
-    onCreateEvent: () -> Unit
+    onClick: () -> Unit
 ) {
     Button(
-        modifier = modifier.padding(40.dp),
-        onClick = { onCreateEvent() },
-        shape = RoundedCornerShape(20.dp),
-        enabled = enableButton
+        modifier = modifier,
+        onClick = { onClick() },
+        shape = RoundedCornerShape(32.dp),
+        enabled = enableButton,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = Color(0xFF72B14A),
+            contentColor = Color.White
+        ),
+        contentPadding = PaddingValues(horizontal = 52.dp, vertical = 12.dp),
     ) {
-        Text(text = "Ready")
-    }
-}
-
-@Composable
-fun DatePickerEvent(
-    modifier: Modifier = Modifier,
-    selectedEventDateUi: String,
-    selectedEventDate: LocalDateTime,
-    onDateSelected: (Int, Int, Int) -> Unit
-) {
-    val context = LocalContext.current
-
-    Box(
-        contentAlignment = Alignment.Center, modifier = modifier
-            .wrapContentHeight()
-            .padding(horizontal = 24.dp)
-    ) {
-        ExtendedFloatingActionButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(75.dp),
-            onClick = {
-                context.openDatePicker(
-                    currentEventDate = selectedEventDate,
-                    onDateSelected = onDateSelected
-                )
-            },
-            icon = {
-                Icon(
-                    modifier = Modifier
-                        .width(55.dp)
-                        .height(55.dp),
-                    painter = painterResource(id = R.drawable.ic_baseline_calendar_month_24),
-                    contentDescription = "Date calendar",
-                    tint = Color.White
-                )
-            },
-            text = { Text(selectedEventDateUi, color = Color.White) },
-            backgroundColor = Color(0xFF7342F0)
+        Text(
+            text = stringResource(id = R.string.button_ready_label),
+            style = LocalSbTypography.current.titleLarge
         )
     }
 }
@@ -303,48 +265,10 @@ fun LoadingScreen(loading: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-fun TimePickerEvent(
-    modifier: Modifier = Modifier,
-    selectedEventTimeUi: String,
-    selectedEventDate: LocalDateTime,
-    onTimeSelected: (Int, Int) -> Unit
-) {
-    val context = LocalContext.current
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .wrapContentHeight()
-            .padding(horizontal = 24.dp)
-    ) {
-        ExtendedFloatingActionButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(75.dp),
-            onClick = {
-                context.openTimePicker(
-                    currentEventDate = selectedEventDate,
-                    onTimeSelected = onTimeSelected
-                )
-            },
-            icon = {
-                Icon(
-                    modifier = Modifier
-                        .width(55.dp)
-                        .height(55.dp),
-                    painter = painterResource(id = R.drawable.ic_baseline_access_time_24),
-                    contentDescription = "Time calendar",
-                    tint = Color.White
-                )
-            },
-            text = { Text(selectedEventTimeUi, color = Color.White) },
-            backgroundColor = Color(0xFF7342F0)
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(
+    ExperimentalMaterialApi::class,
+    ExperimentalComposeUiApi::class,
+)
 @Composable
 fun ProcedureDurationSpinner(
     modifier: Modifier = Modifier,
@@ -352,75 +276,74 @@ fun ProcedureDurationSpinner(
     duration: String,
     onSetDuration: (String) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val bottomSheetState = rememberSbBottomSheetState()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    ExposedDropdownMenuBox(
+    Card(
         modifier = modifier,
-        expanded = expanded,
-        onExpandedChange = {
-            expanded = !expanded
-        }
-    ) {
-        TextField(
-            value = duration,
-            readOnly = true,
-            onValueChange = { },
-            label = { Text("Duration") },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(
-                    expanded = expanded
-                )
-            },
-            colors = ExposedDropdownMenuDefaults.textFieldColors()
+        shape = RoundedCornerShape(56.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
         )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-            }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
         ) {
-            options.forEach { selectionOption ->
+            TextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = duration,
+                readOnly = true,
+                onValueChange = { },
+                textStyle = LocalSbTypography.current.bodyMedium,
+                label = {
+                    Text(
+                        text = stringResource(id = R.string.create_duration_label),
+                        style = LocalSbTypography.current.labelSmall
+                    )
+                },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = bottomSheetState.currentValue == SbBottomSheetValue.Expanded,
+                        onIconClick = {
+                            coroutineScope.launch {
+                                keyboardController?.hide()
+                                bottomSheetState.show()
+                            }
+                        }
+                    )
+                },
+                colors = ExposedDropdownMenuDefaults.textFieldColors(
+                    backgroundColor = Color.White,
+                    textColor = Color.Black,
+                    unfocusedLabelColor = Color.Black,
+                    focusedLabelColor = Color.Black,
+                    disabledLabelColor = Color.Black,
+                    placeholderColor = Color.Black,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+        }
+    }
+
+    SbBottomSheet(state = bottomSheetState) {
+        LazyColumn(
+            contentPadding = PaddingValues(24.dp)
+        ) {
+            items(options) {
                 DropdownMenuItem(
                     onClick = {
-                        onSetDuration(selectionOption)
-                        expanded = false
+                        onSetDuration(it)
+                        coroutineScope.launch {
+                            bottomSheetState.dismiss()
+                        }
                     }
                 ) {
-                    Text(text = selectionOption)
+                    Text(text = it)
                 }
             }
         }
     }
-}
-
-private fun Context.openTimePicker(
-    currentEventDate: LocalDateTime,
-    onTimeSelected: (Int, Int) -> Unit
-) {
-    val mTimePickerDialog = TimePickerDialog(
-        this,
-        { _, mHour: Int, mMinute: Int ->
-            onTimeSelected(mHour, mMinute)
-        },
-        currentEventDate.hour,
-        currentEventDate.minute,
-        true
-    )
-
-    mTimePickerDialog.show()
-}
-
-private fun Context.openDatePicker(
-    currentEventDate: LocalDateTime,
-    onDateSelected: (Int, Int, Int) -> Unit
-) {
-    val dialog = DatePickerDialog(
-        this,
-        { _: DatePicker, mYear: Int, mMonth: Int, mDayOfMonth: Int ->
-            onDateSelected(mYear, mMonth, mDayOfMonth)
-        }, currentEventDate.year, currentEventDate.monthValue - 1, currentEventDate.dayOfMonth
-    )
-    dialog.datePicker.minDate = System.currentTimeMillis() - 1000
-
-    dialog.show()
 }

@@ -10,8 +10,8 @@ import androidx.compose.ui.graphics.Brush
 data class SbGradients(
     val gradientBackgroundVerticalLight: Brush = Brush.verticalGradient(
         listOf(
-            LightPrimary700,
-            LightPrimary800
+            LightGradientOrangeStart,
+            LightGradientOrangeEnd
         )
     )
 )

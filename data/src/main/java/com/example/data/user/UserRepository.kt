@@ -25,7 +25,7 @@ class UserRepository @Inject constructor(
             val key = keyRef.key
             user.id = key
             firebaseDatabase.child("users").child(key!!).setValue(user).await()
-            FirebaseResponse.Success(null)
+            FirebaseResponse.Success(Unit)
         }
     }
 
@@ -36,11 +36,23 @@ class UserRepository @Inject constructor(
     override suspend fun getAllUsers(): List<UserFb> {
         var users = emptyList<UserFb>()
         try {
-            users = firebaseDatabase.child("users").get().await().children.mapNotNull { doc ->
+            users = firebaseDatabase.child("users")
+                .get()
+                .addOnCanceledListener {
+                    print("ERROR!")
+                }
+                .addOnFailureListener {
+                    print("ERROR!")
+                }
+                .addOnCompleteListener {
+                    print("ERROR!")
+                }
+                .await().children.mapNotNull { doc ->
                 doc.getValue(UserFb::class.java)
             }
         } catch (exception: Exception) {
-
+            // TODO
+            print(exception)
         }
         return users
     }
@@ -65,7 +77,7 @@ class UserRepository @Inject constructor(
                 .await()
             firebaseDatabase.child("users").child(user.id!!).child("logInDeviceIds").setValue(newDeviceIdsValue)
                 .await()
-            FirebaseResponse.Success(null)
+            FirebaseResponse.Success(Unit)
         }
     }
 
@@ -80,7 +92,7 @@ class UserRepository @Inject constructor(
             firebaseDatabase.child("users").child(user.id!!).child("logInDeviceIds").setValue(newDeviceIdsValue)
                 .await()
             secureStore.remove(USER_KEY_VALUE)
-            FirebaseResponse.Success(null)
+            FirebaseResponse.Success(Unit)
         }
     }
 
