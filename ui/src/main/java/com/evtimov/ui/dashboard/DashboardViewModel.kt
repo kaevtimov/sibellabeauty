@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -73,31 +74,17 @@ class DashboardViewModel @Inject constructor(
         .flowOn(ioDispatcher)
         .launchIn(viewModelScope)
 
-    fun logout() = logoutUseCase()
-        .onEach { result ->
-            when (result) {
-                is Outcome.Success -> _uiState.update {
-                    it.copy(navigateToLogin = true)
-                }
-
-                is Outcome.Failure -> _uiState.update {
-                    it.copy(error = "Error logout.")
-                }
-
-                is Outcome.Loading -> Unit
-            }
-        }
-        .flowOn(ioDispatcher)
-        .launchIn(viewModelScope)
-
-    fun setSelectedDate(date: String) {
+    fun setSelectedDate(newDate: LocalDateTime) {
         _uiState.update {
-            it.copy(selectedDate = date)
+            it.copy(
+                selectedDate = newDate,
+                selectedDateUi = dateTimeConvertionUseCase.toUiDate(newDate)
+            )
         }
         getEventsByDate()
     }
 
-    private fun getEventsByDate() = getEventsByDateUseCase(_uiState.value.selectedDate)
+    private fun getEventsByDate() = getEventsByDateUseCase(_uiState.value.selectedDateUi)
         .onEach { events ->
             when (events) {
                 is Outcome.Success -> emitEvents(events.data)
@@ -144,14 +131,14 @@ class DashboardViewModel @Inject constructor(
 
     fun onNextDay() {
         _uiState.update {
-            it.copy(selectedDate = dateTimeConvertionUseCase.nextDay(it.selectedDate))
+            it.copy(selectedDateUi = dateTimeConvertionUseCase.nextDay(it.selectedDateUi))
         }
         getEventsByDate()
     }
 
     fun onPrevDay() {
         _uiState.update {
-            it.copy(selectedDate = dateTimeConvertionUseCase.previousDay(it.selectedDate))
+            it.copy(selectedDateUi = dateTimeConvertionUseCase.previousDay(it.selectedDateUi))
         }
         getEventsByDate()
     }
@@ -159,7 +146,8 @@ class DashboardViewModel @Inject constructor(
 
 data class DashboardUiState(
     val events: List<Event> = emptyList(),
-    val selectedDate: String = DateTimeConvertionUseCase().toCurrentUiDate(),
+    val selectedDate: LocalDateTime = LocalDateTime.now(),
+    val selectedDateUi: String = DateTimeConvertionUseCase().toCurrentUiDate(),
     val error: String? = null,
     val isLoading: Boolean? = false,
     val navigateToLogin: Boolean? = false

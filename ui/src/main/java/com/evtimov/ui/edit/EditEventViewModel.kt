@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -66,8 +65,14 @@ class EditEventViewModel @Inject constructor(
         }
     }
 
-    fun setSelectedDate(year: Int, month: Int, day: Int) {
-        val newDate = LocalDateTime.of(year, month + 1, day, 0, 0)
+    fun setSelectedDate(date: LocalDateTime) {
+        val newDate = LocalDateTime.of(
+            date.year,
+            date.month,
+            date.dayOfMonth,
+            _uiState.value.selectedEventDate.hour,
+            _uiState.value.selectedEventDate.minute
+        )
         _uiState.update {
             it.copy(
                 selectedEventDate = newDate,
@@ -81,7 +86,7 @@ class EditEventViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 selectedEventDate = newDateTime,
-                selectedEventTimeUi = dateTimeConvertionUseCase.toUiDateTime(newDateTime)
+                selectedEventTimeUi = dateTimeConvertionUseCase.toUiTime(newDateTime)
             )
         }
     }
@@ -106,27 +111,23 @@ class EditEventViewModel @Inject constructor(
     private fun eventToUpdate() = Event(
         id = eventId.orEmpty(),
         name = _uiState.value.clientName,
-        date = dateTimeConvertionUseCase.toServerDateTime(_uiState.value.selectedEventDate),
+        serverDateTimeString = dateTimeConvertionUseCase.toServerDateTimeString(_uiState.value.selectedEventDate),
         duration = procedureDurations[_uiState.value.duration],
         procedure = _uiState.value.procedureName,
-        timeLapseString = formatTimeLapse()
+        durationUi = dateTimeConvertionUseCase.formatTimeLapseUi(
+            dateRaw = _uiState.value.selectedEventDate,
+            duration = procedureDurations.getOrDefault(_uiState.value.duration, 0L)
+        )
     )
 
     fun consumeError() = _uiState.update {
         it.copy(error = null)
     }
 
-
-    private fun formatTimeLapse(): String {
-        val end =
-            _uiState.value.selectedEventDate.plus(
-                procedureDurations[_uiState.value.duration]!!, ChronoUnit.MILLIS
-            )
-        return "${
-            dateTimeConvertionUseCase.toUiDateTime(_uiState.value.selectedEventDate)
-        }-${
-            dateTimeConvertionUseCase.toUiDateTime(end)
-        }"
+    fun onFinishNavigate() = _uiState.update {
+        it.copy(
+            eventReady = false
+        )
     }
 
     private fun getEvent() {
@@ -135,17 +136,18 @@ class EditEventViewModel @Inject constructor(
                 .onEach { result ->
                     when (result) {
                         is Outcome.Success -> {
-                            val eventDate = dateTimeConvertionUseCase.toRawServerDate(result.data.date.orEmpty())
                             _uiState.update {
                                 it.copy(
                                     clientName = result.data.name.orEmpty(),
                                     procedureName = result.data.procedure.orEmpty(),
-                                    selectedEventDate = eventDate,
+                                    selectedEventDate = dateTimeConvertionUseCase.serverStringToServerDate(
+                                        result.data.serverDateTimeString.orEmpty()
+                                    ),
                                     duration = procedureDurations.filterValues {
                                         it == result.data.duration
                                     }.keys.first(),
-                                    selectedEventDateUi = dateTimeConvertionUseCase.toUiDate(eventDate),
-                                    selectedEventTimeUi = dateTimeConvertionUseCase.toUiDateTime(eventDate),
+                                    selectedEventDateUi = result.data.dateUi.orEmpty(),
+                                    selectedEventTimeUi = result.data.timeUi.orEmpty(),
                                     isLoading = false
                                 )
                             }

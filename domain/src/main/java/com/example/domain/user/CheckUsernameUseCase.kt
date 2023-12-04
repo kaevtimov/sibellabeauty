@@ -12,7 +12,7 @@ class CheckUsernameUseCase @Inject constructor(
 
     operator fun invoke(username: String): Flow<Outcome<Unit>> = flow {
         emit(Outcome.Loading())
-        val result = userRepository.checkUsernameUnique(username)
+        val result = userRepository.getAllUsers().firstOrNull { it.username == username } == null
         emit(
             if (result) {
                 Outcome.Success(Unit)

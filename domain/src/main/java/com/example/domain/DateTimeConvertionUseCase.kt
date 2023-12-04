@@ -2,13 +2,30 @@ package com.example.domain
 
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 class DateTimeConvertionUseCase @Inject constructor() {
 
-    fun nextDay(fromDate: String) = LocalDate.parse(
-        fromDate,
+    fun fromServerToDateUi(dateTimeUiServer: String): String {
+        val rawServerDate = serverStringToServerDate(dateTimeUiServer)
+        return toUiDate(rawServerDate)
+    }
+
+    fun fromServerToTimeUi(dateTimeUiServer: String): String {
+        val rawServerDate = serverStringToServerDate(dateTimeUiServer)
+        return toUiTime(rawServerDate)
+    }
+
+    fun formatTimeLapseUi(dateRaw: LocalDateTime, duration: Long): String {
+        val end = dateRaw.plus(duration, ChronoUnit.MILLIS)
+        return "${toUiTime(dateRaw)}-${toUiTime(end)}"
+    }
+
+    fun nextDay(fromUiDate: String) = LocalDate.parse(
+        fromUiDate,
         DateTimeFormatter.ofPattern(LOCAL_DATE_FORMATTER)
     )
         .plusDays(ONE_DAY_IN_MILLIS).format(
@@ -17,8 +34,8 @@ class DateTimeConvertionUseCase @Inject constructor() {
             )
         )
 
-    fun previousDay(fromDate: String) = LocalDate.parse(
-        fromDate,
+    fun previousDay(fromUiDate: String) = LocalDate.parse(
+        fromUiDate,
         DateTimeFormatter.ofPattern(LOCAL_DATE_FORMATTER)
     )
         .minusDays(ONE_DAY_IN_MILLIS).format(
@@ -27,9 +44,19 @@ class DateTimeConvertionUseCase @Inject constructor() {
             )
         )
 
-    fun toRawServerDate(serverDateString: String): LocalDateTime = LocalDateTime.parse(
+    fun serverStringToServerDate(serverDateString: String): LocalDateTime = LocalDateTime.parse(
         serverDateString,
         DateTimeFormatter.ofPattern(SERVER_DATE_TIME_FORMATTER)
+    )
+
+    fun toRawDateTime(dateString: String): LocalDateTime = LocalDateTime.parse(
+        dateString,
+        DateTimeFormatter.ofPattern(SERVER_DATE_TIME_FORMATTER)
+    )
+
+    fun toRawDate(dateString: String): LocalDate = LocalDate.parse(
+        dateString,
+        DateTimeFormatter.ofPattern(LOCAL_DATE_FORMATTER)
     )
 
     fun toCurrentUiDate(): String = LocalDateTime.now().format(
@@ -50,17 +77,25 @@ class DateTimeConvertionUseCase @Inject constructor() {
         )
     )
 
-    fun toUiDateTime(date: LocalDateTime): String = date.format(
+    fun toUiTime(date: LocalDateTime): String = date.format(
         DateTimeFormatter.ofPattern(
             LOCAL_TIME_FORMATTER
         )
     )
 
-    fun toServerDateTime(date: LocalDateTime): String = date.format(
+    fun toServerDateTimeString(date: LocalDateTime): String = date.format(
         DateTimeFormatter.ofPattern(
             SERVER_DATE_TIME_FORMATTER
         )
     )
+
+    fun getPeriodStart(serverDateString: String) = LocalDateTime.parse(
+        serverDateString,
+        DateTimeFormatter.ofPattern(SERVER_DATE_TIME_FORMATTER)
+    )?.atZone(ZoneId.systemDefault())
+        ?.toInstant()?.toEpochMilli() ?: 0L
+
+    fun getPeriodEnd(period: String, duration: Long) = getPeriodStart(period) + duration
 
     companion object {
         private const val SERVER_DATE_TIME_FORMATTER = "yyyy-MM-dd HH:mm"

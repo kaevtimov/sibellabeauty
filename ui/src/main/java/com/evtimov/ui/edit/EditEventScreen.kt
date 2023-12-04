@@ -21,11 +21,13 @@ import com.evtimov.ui.create.LoadingScreen
 import com.evtimov.ui.create.ProcedureDurationSpinner
 import com.evtimov.ui.create.ReadyButton
 import com.evtimov.ui.theme.LocalSbGradients
-import com.evtimov.ui.widgets.DatePickerEvent
+import com.evtimov.ui.widgets.DatePickView
+import com.evtimov.ui.widgets.SbSnackBar
 import com.evtimov.ui.widgets.SbSnackBarVisuals
-import com.evtimov.ui.widgets.TimePickerEvent
+import com.evtimov.ui.widgets.TimePickView
 import com.evtimov.ui.widgets.rememberVbSnackBarState
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 @Composable
 fun EditEventScreen(
@@ -41,7 +43,12 @@ fun EditEventScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (uiState.eventReady) onEventEdit()
+    LaunchedEffect(key1 = uiState.eventReady) {
+        if (uiState.eventReady) {
+            onEventEdit()
+            viewModel.onFinishNavigate()
+        }
+    }
 
     LaunchedEffect(key1 = uiState.error) {
         uiState.error?.let {
@@ -60,13 +67,10 @@ fun EditEventScreen(
         onSetClientName = { viewModel.setClientName(it) },
         onSetProcedure = { viewModel.setProcedure(it) },
         onSetDuration = { viewModel.setDuration(it) },
-        onTimeSelected = { hour, minute ->
-            viewModel.setSelectedTime(hour, minute)
-        },
-        onDateSelected = { year, month, day ->
-            viewModel.setSelectedDate(year, month, day)
-        }
+        onTimeSelected = { hour, minute -> viewModel.setSelectedTime(hour, minute) },
+        onDateSelected = { viewModel.setSelectedDate(it) }
     )
+    SbSnackBar(snackBarHostState = snackbarState)
 }
 
 @Composable
@@ -74,7 +78,7 @@ private fun Content(
     state: EditEventUiState,
     onSetClientName: (String) -> Unit,
     onSetProcedure: (String) -> Unit,
-    onDateSelected: (Int, Int, Int) -> Unit,
+    onDateSelected: (LocalDateTime) -> Unit,
     onTimeSelected: (Int, Int) -> Unit,
     onSetDuration: (String) -> Unit,
     onEditEvent: () -> Unit
@@ -100,7 +104,7 @@ private fun Content(
             onSetClientName = onSetClientName,
             onSetProcedure = onSetProcedure
         )
-        DatePickerEvent(
+        DatePickView(
             modifier = Modifier.constrainAs(date) {
                 top.linkTo(input.bottom, 24.dp)
                 start.linkTo(input.start)
@@ -111,7 +115,7 @@ private fun Content(
             selectedEventDateUi = state.selectedEventDateUi,
             onDateSelected = onDateSelected
         )
-        TimePickerEvent(
+        TimePickView(
             modifier = Modifier.constrainAs(time) {
                 top.linkTo(date.bottom, 24.dp)
                 start.linkTo(input.start)

@@ -4,7 +4,6 @@ import com.example.data.FirebaseResponse
 import com.example.data.event.IEventRepository
 import com.example.domain.Outcome
 import com.example.domain.model.Event
-import com.example.domain.model.mapToData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -15,7 +14,10 @@ class RemoveEventUseCase @Inject constructor(
 
     operator fun invoke(event: Event): Flow<Outcome<String>> = flow {
         emit(Outcome.Loading())
-        val result = eventRepository.removeEvent(event.mapToData())
+
+        if (event.id.isNullOrEmpty()) emit(Outcome.Failure("Failed to delete event!"))
+
+        val result = eventRepository.removeEvent(event.id!!)
         emit(
             when (result) {
                 is FirebaseResponse.Success -> Outcome.Success(result.data)

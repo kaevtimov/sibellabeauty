@@ -38,10 +38,19 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.rememberDismissState
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,16 +73,20 @@ import com.evtimov.ui.R
 import com.evtimov.ui.theme.LocalSbColors
 import com.evtimov.ui.theme.LocalSbGradients
 import com.evtimov.ui.utils.observeLifecycleEvents
-import com.evtimov.ui.utils.openDatePicker
 import com.evtimov.ui.widgets.LoadingWidget
+import com.evtimov.ui.widgets.SbSnackBar
 import com.evtimov.ui.widgets.SbSnackBarVisuals
 import com.evtimov.ui.widgets.rememberVbSnackBarState
 import com.example.domain.model.Event
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Composable
 fun DashboardScreen(
     onNavigateLogin: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onCreateEvent: () -> Unit,
     onEditEvent: (String) -> Unit,
 ) {
@@ -109,21 +122,22 @@ fun DashboardScreen(
         onRemoveEvent = { viewModel.removeEvent(it) },
         onPrevDay = { viewModel.onPrevDay() },
         onNextDay = { viewModel.onNextDay() },
-        onLogout = { viewModel.logout() },
+        onSettings = { onNavigateToSettings() },
         onCreateEvent = onCreateEvent,
         onEditEvent = onEditEvent
     )
+    SbSnackBar(snackBarHostState = snackbarState)
 }
 
 @Composable
 fun Content(
     uiState: DashboardUiState,
     onNavigateLogin: () -> Unit,
-    onDateSelected: (String) -> Unit,
+    onDateSelected: (LocalDateTime) -> Unit,
     onRemoveEvent: (Event) -> Unit,
     onPrevDay: () -> Unit,
     onNextDay: () -> Unit,
-    onLogout: () -> Unit,
+    onSettings: () -> Unit,
     onCreateEvent: () -> Unit,
     onEditEvent: (String) -> Unit
 ) {
@@ -150,6 +164,7 @@ fun Content(
         )
         TopDayNavigation(
             date = uiState.selectedDate,
+            dateUi = uiState.selectedDateUi,
             modifier = Modifier.constrainAs(topDateNav) {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
@@ -182,12 +197,12 @@ fun Content(
                     bottom.linkTo(parent.bottom, 66.dp)
                     start.linkTo(parent.start)
                 },
-            onClick = { onLogout() },
-            backgroundColor = Color(0xFFFF5722)
+            onClick = { onSettings() },
+            backgroundColor = Color.White
         ) {
             Icon(
-                painterResource(id = R.drawable.ic_baseline_logout_24),
-                contentDescription = "Logout",
+                painterResource(id = R.drawable.ic_settings),
+                contentDescription = null,
                 tint = Color(0xFF090703)
             )
         }
@@ -216,13 +231,13 @@ fun LoadingScreen(
 
 @Composable
 fun TopDayNavigation(
-    date: String,
+    date: LocalDateTime,
+    dateUi: String,
     modifier: Modifier = Modifier,
-    onDateSelected: (String) -> Unit,
+    onDateSelected: (LocalDateTime) -> Unit,
     onPrevDay: () -> Unit,
     onNextDay: () -> Unit
 ) {
-    val context = LocalContext.current
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = modifier
@@ -244,25 +259,10 @@ fun TopDayNavigation(
             )
         }
         Spacer(modifier = Modifier.width(20.dp))
-        ExtendedFloatingActionButton(
-            modifier = Modifier
-                .wrapContentWidth()
-                .height(60.dp),
-            onClick = {
-                context.openDatePicker(
-                    selectedDate = date,
-                    onDateSelected = onDateSelected
-                )
-            },
-            icon = {
-                Icon(
-                    painterResource(id = R.drawable.ic_baseline_calendar_month_24),
-                    contentDescription = "Date",
-                    tint = Color.Black
-                )
-            },
-            text = { Text(text = date, color = Color.Black, fontWeight = FontWeight.Bold) },
-            backgroundColor = Color(0xFFE9E8E8)
+        TopBarDatePickView(
+            date = date,
+            dateUi = dateUi,
+            onDateSelected = onDateSelected
         )
         Spacer(modifier = Modifier.width(20.dp))
         FloatingActionButton(
@@ -274,6 +274,87 @@ fun TopDayNavigation(
                 painterResource(id = R.drawable.ic_baseline_chevron_right_24),
                 contentDescription = "Arrow forward",
                 tint = Color.Black
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TopBarDatePickView(
+    date: LocalDateTime,
+    dateUi: String,
+    onDateSelected: (LocalDateTime) -> Unit
+) {
+    val state = rememberDatePickerState().apply {
+        displayMode = DisplayMode.Picker
+        this.setSelection(date.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli())
+    }
+    val openDialog = remember { mutableStateOf(false) }
+    ExtendedFloatingActionButton(
+        modifier = Modifier
+            .wrapContentWidth()
+            .height(60.dp),
+        onClick = { openDialog.value = true },
+        icon = {
+            Icon(
+                painterResource(id = R.drawable.ic_baseline_calendar_month_24),
+                contentDescription = "Date",
+                tint = Color.Black
+            )
+        },
+        text = { Text(text = dateUi, color = Color.Black, fontWeight = FontWeight.Bold) },
+        backgroundColor = Color(0xFFE9E8E8)
+    )
+    if (openDialog.value) {
+        DatePickerDialog(
+            onDismissRequest = {
+                openDialog.value = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        openDialog.value = false
+                        onDateSelected(
+                            LocalDateTime.ofInstant(
+                                Instant.ofEpochMilli(state.selectedDateMillis!!),
+                                ZoneId.systemDefault()
+                            )
+                        )
+                    }
+                ) {
+                    androidx.compose.material3.Text(stringResource(id = R.string.action_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        openDialog.value = false
+                    }
+                ) {
+                    androidx.compose.material3.Text(stringResource(id = R.string.action_cancel))
+                }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color.White
+            )
+        ) {
+            DatePicker(
+                state = state,
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color.White,
+                    titleContentColor = Color(0xFFF59B70),
+                    headlineContentColor = Color(0xFFF59B70),
+                    subheadContentColor = Color(0xFFFF3A68),
+                    weekdayContentColor = Color(0xFFFF3A68),
+                    yearContentColor = Color(0xFFFF3A68),
+                    currentYearContentColor = Color(0xFFFF3A68),
+                    selectedYearContentColor = Color(0xFFFF3A68),
+                    dayContentColor = Color(0xFFFF3A68),
+                    todayContentColor = Color(0xFFFF3A68),
+                    dayInSelectionRangeContentColor = Color(0xFFFF3A68),
+                    selectedDayContentColor = Color.White,
+                )
             )
         }
     }
@@ -371,7 +452,7 @@ fun EventListItem(
         modifier = Modifier
             .padding(vertical = 6.dp)
             .fillMaxWidth()
-            .wrapContentHeight(),
+            .height(70.dp),
         backgroundColor = Color(0xFFF8F8F8),
         shape = RoundedCornerShape(corner = CornerSize(16.dp))
     ) {
@@ -380,31 +461,13 @@ fun EventListItem(
                 .fillMaxWidth()
                 .clickable { onEditEvent(event.id.orEmpty()) }
         ) {
-            val (image, eventDescription, time) = createRefs()
-
-            FloatingActionButton(
-                modifier = Modifier
-                    .size(70.dp)
-                    .constrainAs(image) {
-                        this.start.linkTo(parent.start, 12.dp)
-                        bottom.linkTo(parent.bottom, 12.dp)
-                        top.linkTo(parent.top, 12.dp)
-                    },
-                onClick = { },
-                backgroundColor = Color(0xFF4B4185)
-            ) {
-                Icon(
-                    painterResource(id = R.drawable.ic_baseline_content_cut_24),
-                    contentDescription = "Scissors",
-                    tint = Color(0xFFffbc9c)
-                )
-            }
+            val (eventDescription, time) = createRefs()
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start,
                 modifier = Modifier
                     .constrainAs(eventDescription) {
-                        this.start.linkTo(image.end, 12.dp)
+                        start.linkTo(parent.start, 12.dp)
                         bottom.linkTo(parent.bottom, 12.dp)
                         top.linkTo(parent.top, 12.dp)
                         end.linkTo(time.start, 8.dp)
@@ -445,7 +508,7 @@ fun EventListItem(
                 verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     modifier = Modifier.padding(horizontal = 6.dp),
-                    text = "${event.timeLapseString}",
+                    text = "${event.durationUi}",
                     color = Color.Black,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold

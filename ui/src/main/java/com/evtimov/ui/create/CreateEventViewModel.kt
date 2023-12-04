@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import java.util.*
 import javax.inject.Inject
 
@@ -63,8 +62,14 @@ class CreateEventViewModel @Inject constructor(
         toggleButton()
     }
 
-    fun setSelectedDate(year: Int, month: Int, day: Int) {
-        val newDate = LocalDateTime.of(year, month + 1, day, 0, 0)
+    fun setSelectedDate(date: LocalDateTime) {
+        val newDate = LocalDateTime.of(
+            date.year,
+            date.month,
+            date.dayOfMonth,
+            _uiState.value.selectedEventDate.hour,
+            _uiState.value.selectedEventDate.minute
+        )
         _uiState.update {
             it.copy(
                 selectedEventDate = newDate,
@@ -78,7 +83,7 @@ class CreateEventViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 selectedEventDate = newDateTime,
-                selectedEventTimeUi = dateTimeConvertionUseCase.toUiDateTime(newDateTime)
+                selectedEventTimeUi = dateTimeConvertionUseCase.toUiTime(newDateTime)
             )
         }
     }
@@ -128,24 +133,17 @@ class CreateEventViewModel @Inject constructor(
 
     private fun getEventToAdd() = Event(
         name = _uiState.value.clientName,
-        date = dateTimeConvertionUseCase.toServerDateTime(_uiState.value.selectedEventDate),
+        serverDateTimeString = dateTimeConvertionUseCase.toServerDateTimeString(_uiState.value.selectedEventDate),
         duration = procedureDurations[_uiState.value.duration],
         procedure = _uiState.value.procedureName,
-        timeLapseString = formatTimeLapse(),
+        durationUi = dateTimeConvertionUseCase.formatTimeLapseUi(
+            dateRaw = _uiState.value.selectedEventDate,
+            duration = procedureDurations.getOrDefault(_uiState.value.duration, 0L)
+        ),
+        dateUi = _uiState.value.selectedEventDateUi,
+        timeUi = _uiState.value.selectedEventTimeUi,
         user = _uiState.value.loggedInUsername
     )
-
-    private fun formatTimeLapse(): String {
-        val end =
-            _uiState.value.selectedEventDate.plus(
-                procedureDurations[_uiState.value.duration]!!, ChronoUnit.MILLIS
-            )
-        return "${
-            dateTimeConvertionUseCase.toUiDateTime(_uiState.value.selectedEventDate)
-        }-${
-            dateTimeConvertionUseCase.toUiDateTime(end)
-        }"
-    }
 
     private fun toggleButton() {
         _uiState.update {
@@ -153,6 +151,12 @@ class CreateEventViewModel @Inject constructor(
                 enableCreateButton = it.clientName.isNotBlank() && it.procedureName.isNotBlank()
             )
         }
+    }
+
+    fun onFinishNavigate() = _uiState.update {
+        it.copy(
+            eventReady = false
+        )
     }
 }
 

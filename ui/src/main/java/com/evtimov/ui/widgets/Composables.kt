@@ -10,26 +10,43 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerColors
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.TimePickerLayoutType
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import com.evtimov.ui.R
 import com.evtimov.ui.theme.LocalSbTypography
-import com.evtimov.ui.utils.openDatePicker
-import com.evtimov.ui.utils.openTimePicker
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Composable
 fun LogoCircle(modifier: Modifier = Modifier) {
@@ -109,44 +126,153 @@ fun LoadingWidget(modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickerEvent(
+fun DatePickView(
     modifier: Modifier = Modifier,
     selectedEventDateUi: String,
     selectedEventDate: LocalDateTime,
-    onDateSelected: (Int, Int, Int) -> Unit
+    onDateSelected: (LocalDateTime) -> Unit
 ) {
-    val context = LocalContext.current
+    val state = rememberDatePickerState().apply {
+        displayMode = DisplayMode.Picker
+        this.setSelection(selectedEventDate.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli())
+    }
+    val openDialog = remember { mutableStateOf(false) }
     PickerEvent(
         modifier = modifier,
         icon = R.drawable.ic_baseline_calendar_month_24,
-        selectedUi = selectedEventDateUi
-    ) {
-        context.openDatePicker(
-            currentEventDate = selectedEventDate,
-            onDateSelected = onDateSelected
-        )
+        selectedUi = selectedEventDateUi,
+        onClick = { openDialog.value = true }
+    )
+
+    if (openDialog.value) {
+        DatePickerDialog(
+            onDismissRequest = {
+                openDialog.value = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        openDialog.value = false
+                        onDateSelected(
+                            Instant.ofEpochMilli(state.selectedDateMillis!!).atZone(
+                                ZoneId.systemDefault()
+                            ).toLocalDateTime()
+                        )
+                    }
+                ) {
+                    androidx.compose.material3.Text(text = stringResource(id = R.string.action_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { openDialog.value = false }
+                ) {
+                    androidx.compose.material3.Text(text = stringResource(id = R.string.action_cancel))
+                }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color.White,
+                titleContentColor = Color(0xFFBF91FF)
+            )
+        ) {
+            DatePicker(
+                state = state,
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color.White,
+                    titleContentColor = Color(0xFFF59B70),
+                    headlineContentColor = Color(0xFFF59B70),
+                    subheadContentColor = Color(0xFFFF3A68),
+                    weekdayContentColor = Color(0xFFFF3A68),
+                    yearContentColor = Color(0xFFFF3A68),
+                    currentYearContentColor = Color(0xFFFF3A68),
+                    selectedYearContentColor = Color(0xFFFF3A68),
+                    dayContentColor = Color(0xFFFF3A68),
+                    todayContentColor = Color(0xFFFF3A68),
+                    dayInSelectionRangeContentColor = Color(0xFFFF3A68),
+                    selectedDayContentColor = Color.White,
+                )
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TimePickerEvent(
+fun TimePickView(
     modifier: Modifier = Modifier,
     selectedEventTimeUi: String,
     selectedEventDate: LocalDateTime,
     onTimeSelected: (Int, Int) -> Unit
 ) {
-    val context = LocalContext.current
+    val timePickerState = rememberTimePickerState(
+        initialHour = selectedEventDate.hour,
+        initialMinute = selectedEventDate.minute,
+        is24Hour = true
+    )
+    val openDialog = remember { mutableStateOf(false) }
 
     PickerEvent(
         modifier = modifier,
         icon = R.drawable.ic_baseline_access_time_24,
-        selectedUi = selectedEventTimeUi
-    ) {
-        context.openTimePicker(
-            currentEventDate = selectedEventDate,
-            onTimeSelected = onTimeSelected
-        )
+        selectedUi = selectedEventTimeUi,
+        onClick = { openDialog.value = true }
+    )
+    if (openDialog.value) {
+        AlertDialog(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = Color.White,
+                    shape = RoundedCornerShape(size = 24.dp)
+                ),
+            onDismissRequest = { openDialog.value = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .background(
+                        color = Color.Transparent
+                    )
+                    .padding(top = 16.dp, start = 12.dp, end = 12.dp, bottom = 0.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                TimePicker(
+                    state = timePickerState,
+                    layoutType = TimePickerLayoutType.Vertical,
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = Color(0xFFFFD8C5),
+                        clockDialSelectedContentColor = Color.White,
+                        clockDialUnselectedContentColor = Color(0xFFFF3A68),
+                        selectorColor = Color(0xFFF77594),
+                        timeSelectorSelectedContainerColor = Color(0xFFFFD8C5),
+                        timeSelectorUnselectedContainerColor = Color(0xFFEEECEC),
+                        timeSelectorSelectedContentColor = Color(0xFFFF3A68),
+                        timeSelectorUnselectedContentColor = Color(0xFFFF3A68),
+                        periodSelectorBorderColor = Color.Red
+                    )
+                )
+                Row(
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    TextButton(onClick = { openDialog.value = false }) {
+                        androidx.compose.material3.Text(text = stringResource(id = R.string.action_cancel))
+                    }
+                    TextButton(
+                        onClick = {
+                            openDialog.value = false
+                            onTimeSelected(timePickerState.hour, timePickerState.minute)
+                        }
+                    ) {
+                        androidx.compose.material3.Text(text = stringResource(id = R.string.action_ok))
+                    }
+                }
+            }
+        }
     }
 }
 

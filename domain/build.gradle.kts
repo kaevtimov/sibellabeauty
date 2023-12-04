@@ -38,6 +38,8 @@ dependencies {
     implementation(libs.kotlin.core)
     implementation(platform(libs.kotlin.bom))
     kapt(libs.hilt.kapt)
+    implementation(libs.google.code.gson)
     implementation(libs.hilt.android)
     implementation(project(":data"))
+    implementation(project(":common"))
 }

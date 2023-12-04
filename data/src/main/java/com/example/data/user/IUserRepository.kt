@@ -10,5 +10,4 @@ interface IUserRepository {
     suspend fun loginUser(user: UserFb): FirebaseResponse<Any>
     suspend fun logoutUser(): FirebaseResponse<Any>
     suspend fun getUserByCredentials(username: String, password: String): UserFb?
-    suspend fun checkUsernameUnique(username: String): Boolean
 }

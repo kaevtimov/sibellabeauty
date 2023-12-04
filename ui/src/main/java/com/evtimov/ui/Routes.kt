@@ -21,6 +21,14 @@ val RegisterScreen = Route.SimpleRoute("Register")
 val DashboardScreen = Route.SimpleRoute("Dashboard")
 val CreateScreen = Route.SimpleRoute("Create")
 val EditScreen = Route.WithStringArgument("Edit", "eventId")
+val SettingsScreen = Route.SimpleRoute("Settings")
 
-val SbRoutes =
-    listOf(SplashScreen, LoginScreen, RegisterScreen, DashboardScreen, CreateScreen, EditScreen)
+val SbRoutes = listOf(
+    SplashScreen,
+    LoginScreen,
+    RegisterScreen,
+    DashboardScreen,
+    CreateScreen,
+    EditScreen,
+    SettingsScreen
+)

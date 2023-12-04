@@ -30,12 +30,14 @@ import com.evtimov.ui.EditScreen
 import com.evtimov.ui.LoginScreen
 import com.evtimov.ui.RegisterScreen
 import com.evtimov.ui.SbRoutes
+import com.evtimov.ui.SettingsScreen
 import com.evtimov.ui.SplashScreen
 import com.evtimov.ui.create.CreateEventScreen
 import com.evtimov.ui.dashboard.DashboardScreen
 import com.evtimov.ui.edit.EditEventScreen
 import com.evtimov.ui.login.LoginScreen
 import com.evtimov.ui.register.RegisterScreen
+import com.evtimov.ui.settings.SettingsScreen
 import com.evtimov.ui.splash.SplashScreen
 import com.evtimov.ui.theme.SbTheme
 import com.example.common.di.DeviceManagement
@@ -120,6 +122,7 @@ private fun NavGraphBuilder.navigationGraph(
                 )
 
                 DashboardScreen -> DashboardScreen(
+                    onNavigateToSettings = { navigationController.navigate(SettingsScreen.getPath()) },
                     onNavigateLogin = {
                         navigationController.navigate(LoginScreen.getPath()) {
                             popUpTo(DashboardScreen.getPath()) {
@@ -141,6 +144,17 @@ private fun NavGraphBuilder.navigationGraph(
                 EditScreen -> EditEventScreen(
                     onEventEdit = { navigationController.popBackStack() },
                     navigateBack = { navigationController.popBackStack() }
+                )
+
+                SettingsScreen -> SettingsScreen(
+                    navigateBack = { navigationController.popBackStack() },
+                    navigateToLogin = {
+                        navigationController.navigate(LoginScreen.getPath()) {
+                            popUpTo(DashboardScreen.getPath()) {
+                                inclusive = true
+                            }
+                        }
+                    }
                 )
 
                 else -> {}
