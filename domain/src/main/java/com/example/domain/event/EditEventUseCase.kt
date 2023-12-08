@@ -5,21 +5,34 @@ import com.example.data.event.IEventRepository
 import com.example.domain.Outcome
 import com.example.domain.model.Event
 import com.example.domain.model.mapToData
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.mapLatest
 import javax.inject.Inject
 
 class EditEventUseCase @Inject constructor(
-    private val eventRepository: IEventRepository
+    private val eventRepository: IEventRepository,
+    private val checkSlotAvailableUseCase: CheckSlotAvailableUseCase
 ) {
 
-    operator fun invoke(event: Event): Flow<Outcome<String>> = flow {
-        emit(Outcome.Loading())
+    @OptIn(ExperimentalCoroutinesApi::class)
+    operator fun invoke(newEvent: Event): Flow<Outcome<String>> =
+        checkSlotAvailableUseCase(newEvent).mapLatest { outcome ->
+            when (outcome) {
+                is Outcome.Success -> {
+                    if (outcome.data) {
+                        when (val result = eventRepository.editEvent(newEvent.mapToData())) {
+                            is FirebaseResponse.Success -> Outcome.Success(result.data)
+                            is FirebaseResponse.Error -> Outcome.Failure(result.message)
+                            else -> Outcome.Loading()
+                        }
+                    } else {
+                        Outcome.Failure("Slot not available! Please select another date or time.")
+                    }
+                }
 
-        when (val result = eventRepository.editEvent(event.mapToData())) {
-            is FirebaseResponse.Success -> emit(Outcome.Success(result.data))
-            is FirebaseResponse.Error -> emit(Outcome.Failure(result.message))
-            else -> Unit
+                is Outcome.Failure -> Outcome.Failure(outcome.error)
+                is Outcome.Loading -> Outcome.Loading()
+            }
         }
-    }
 }

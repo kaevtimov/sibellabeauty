@@ -13,8 +13,8 @@
     <string name="register_username">Потребителско име</string>
     <string name="register_password">Парола</string>
     <string name="register_confirm_password">Повтори парола</string>
-    <string name="dashboard_name_label">Клиент: %s</string>
-    <string name="dashboard_procedure_label">Процедура: %s</string>
+    <string name="dashboard_name_label">Клиент: </string>
+    <string name="dashboard_procedure_label">Процедура: </string>
     <string name="dashboard_no_items">Няма събития</string>
     <string name="create_client_name_label">Име на клиент</string>
     <string name="create_procedure_label">Процедура</string>

@@ -5,7 +5,7 @@ import com.example.common.di.USER_KEY_VALUE
 import com.example.data.event.EventFb
 import com.example.data.event.IEventRepository
 import com.example.data.user.UserFb
-import com.example.domain.DateTimeConvertionUseCase
+import com.example.domain.DateTimeUseCase
 import com.example.domain.Outcome
 import com.example.domain.model.Event
 import com.example.domain.model.mapToDomain
@@ -18,7 +18,7 @@ import javax.inject.Inject
 class GetEventsByDateUseCase @Inject constructor(
     private val eventsRepo: IEventRepository,
     private val secureStore: SecureStore,
-    private val dateTimeConvertionUseCase: DateTimeConvertionUseCase
+    private val dateTimeConvertionUseCase: DateTimeUseCase
 ) {
 
     operator fun invoke(date: String): Flow<Outcome<List<Event>>> = flow {

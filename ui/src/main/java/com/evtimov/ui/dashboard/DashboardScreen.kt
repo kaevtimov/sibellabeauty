@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.DismissDirection
-import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ExtendedFloatingActionButton
@@ -43,7 +42,6 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -56,10 +54,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -82,6 +80,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.TextStyle
 
 @Composable
 fun DashboardScreen(
@@ -160,7 +159,8 @@ fun Content(
                     height = Dimension.fillToConstraints
                 },
             onRemoveEvent = onRemoveEvent,
-            onEditEvent = onEditEvent
+            onEditEvent = onEditEvent,
+            onCreateEvent = onCreateEvent
         )
         TopDayNavigation(
             date = uiState.selectedDate,
@@ -360,13 +360,13 @@ private fun TopBarDatePickView(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DashboardContent(
     events: List<Event>,
     modifier: Modifier = Modifier,
     onRemoveEvent: (Event) -> Unit,
-    onEditEvent: (String) -> Unit
+    onEditEvent: (String) -> Unit,
+    onCreateEvent: () -> Unit
 ) {
     if (events.isEmpty()) {
         EmptyContent()
@@ -385,53 +385,18 @@ fun DashboardContent(
                     )
                 }
                 items(events) {
-                    val dismissState = rememberDismissState()
-
-                    if (dismissState.isDismissed(DismissDirection.EndToStart)) {
-                        onRemoveEvent(it)
+                    if (it.name.orEmpty().isNotEmpty()) {
+                        EventListItem(
+                            event = it,
+                            onEditEvent = onEditEvent,
+                            onRemoveEvent = onRemoveEvent
+                        )
+                    } else {
+                        EmptySlotItem(
+                            event = it,
+                            onCreateEvent = onCreateEvent
+                        )
                     }
-                    SwipeToDismiss(
-                        state = dismissState,
-                        directions = setOf(DismissDirection.EndToStart),
-                        dismissThresholds = { direction ->
-                            FractionalThreshold(if (direction == DismissDirection.EndToStart) 0.1f else 0.05f)
-                        },
-                        background = {
-                            val color by animateColorAsState(
-                                when (dismissState.targetValue) {
-                                    DismissValue.Default -> Color.Transparent
-                                    else -> Color.Red
-                                }
-                            )
-                            val alignment = Alignment.CenterEnd
-                            val icon = Icons.Default.Delete
-
-                            val scale by animateFloatAsState(
-                                if (dismissState.targetValue == DismissValue.Default) 0.75f else 1f
-                            )
-
-                            Box(
-                                Modifier
-                                    .fillMaxSize()
-                                    .background(color)
-                                    .padding(horizontal = Dp(20f)),
-                                contentAlignment = alignment
-                            ) {
-                                Icon(
-                                    icon,
-                                    contentDescription = "Delete Icon",
-                                    modifier = Modifier.scale(scale)
-                                )
-                            }
-                        },
-                        dismissContent = {
-                            EventListItem(
-                                event = it,
-                                dismissState = dismissState,
-                                onEditEvent = onEditEvent
-                            )
-                        }
-                    )
                 }
             }
         }
@@ -442,79 +407,165 @@ fun DashboardContent(
 @Composable
 fun EventListItem(
     event: Event,
-    dismissState: DismissState,
-    onEditEvent: (String) -> Unit
+    onEditEvent: (String) -> Unit,
+    onRemoveEvent: (Event) -> Unit
 ) {
-    Card(
-        elevation = animateDpAsState(
-            if (dismissState.dismissDirection != null) 8.dp else 6.dp
-        ).value,
-        modifier = Modifier
-            .padding(vertical = 6.dp)
-            .fillMaxWidth()
-            .height(70.dp),
-        backgroundColor = Color(0xFFF8F8F8),
-        shape = RoundedCornerShape(corner = CornerSize(16.dp))
-    ) {
-        ConstraintLayout(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onEditEvent(event.id.orEmpty()) }
-        ) {
-            val (eventDescription, time) = createRefs()
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier
-                    .constrainAs(eventDescription) {
-                        start.linkTo(parent.start, 12.dp)
-                        bottom.linkTo(parent.bottom, 12.dp)
-                        top.linkTo(parent.top, 12.dp)
-                        end.linkTo(time.start, 8.dp)
-                        height = Dimension.fillToConstraints
-                        width = Dimension.fillToConstraints
-                    }) {
-                Text(
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
-                    text = stringResource(id = R.string.dashboard_name_label, event.name.orEmpty()),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
-                    text = stringResource(
-                        id = R.string.dashboard_procedure_label,
-                        event.procedure.orEmpty()
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+    val dismissState = rememberDismissState()
+
+    if (dismissState.isDismissed(DismissDirection.EndToStart)) {
+        onRemoveEvent(event)
+    }
+    SwipeToDismiss(
+        state = dismissState,
+        directions = setOf(DismissDirection.EndToStart),
+        dismissThresholds = { direction ->
+            FractionalThreshold(if (direction == DismissDirection.EndToStart) 0.1f else 0.05f)
+        },
+        background = {
+            val color by animateColorAsState(
+                when (dismissState.targetValue) {
+                    DismissValue.Default -> Color.Transparent
+                    else -> Color.Red
+                }
+            )
+            val alignment = Alignment.CenterEnd
+            val icon = Icons.Default.Delete
+
+            val scale by animateFloatAsState(
+                if (dismissState.targetValue == DismissValue.Default) 0.75f else 1f
+            )
+
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(color)
+                    .padding(horizontal = Dp(20f)),
+                contentAlignment = alignment
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = "Delete Icon",
+                    modifier = Modifier.scale(scale)
                 )
             }
-            Row(modifier = Modifier
-                .constrainAs(time) {
-                    this.start.linkTo(eventDescription.end)
-                    bottom.linkTo(parent.bottom)
-                    top.linkTo(parent.top)
-                    end.linkTo(parent.end)
-                    height = Dimension.fillToConstraints
-                    width = Dimension.wrapContent
+        },
+        dismissContent = {
+            Card(
+                elevation = animateDpAsState(
+                    if (dismissState.dismissDirection != null) 8.dp else 6.dp
+                ).value,
+                modifier = Modifier
+                    .padding(vertical = 6.dp)
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                backgroundColor = Color(0xFFF8F8F8),
+                shape = RoundedCornerShape(corner = CornerSize(16.dp))
+            ) {
+                ConstraintLayout(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .clickable { onEditEvent(event.id.orEmpty()) }
+                ) {
+                    val (eventDescription, time) = createRefs()
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.Start,
+                        modifier = Modifier
+                            .constrainAs(eventDescription) {
+                                start.linkTo(parent.start, 14.dp)
+                                bottom.linkTo(parent.bottom, 16.dp)
+                                top.linkTo(time.bottom, 16.dp)
+                                end.linkTo(parent.end, 14.dp)
+                                height = Dimension.wrapContent
+                                width = Dimension.fillToConstraints
+                            }) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                text = stringResource(id = R.string.dashboard_name_label),
+                                color = Color.Black,
+                                fontSize = 20.sp,
+                                fontStyle = FontStyle.Italic,
+                                fontWeight = FontWeight.Normal
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                text = event.name.orEmpty(),
+                                color = Color(0xFF3C3C3C),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                text = stringResource(id = R.string.dashboard_procedure_label),
+                                color = Color.Black,
+                                fontSize = 20.sp,
+                                fontStyle = FontStyle.Italic,
+                                fontWeight = FontWeight.Normal
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                text = event.procedure.orEmpty(),
+                                color = Color(0xFF3C3C3C),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                    Row(modifier = Modifier
+                        .constrainAs(time) {
+                            start.linkTo(parent.start)
+                            bottom.linkTo(eventDescription.top)
+                            top.linkTo(parent.top)
+                            end.linkTo(parent.end)
+                            height = Dimension.wrapContent
+                            width = Dimension.fillToConstraints
+                        }
+                        .background(Color(0xFFffbc9c)),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            text = "${event.durationUi}",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-                .background(Color(0xFFffbc9c)),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    modifier = Modifier.padding(horizontal = 6.dp),
-                    text = "${event.durationUi}",
-                    color = Color.Black,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
+    )
+}
+
+@Composable
+fun EmptySlotItem(
+    event: Event,
+    onCreateEvent: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(eventItemHeight(event.duration))
+            .background(Color(0xCCAADCF7), RoundedCornerShape(corner = CornerSize(16.dp)))
+            .clickable { onCreateEvent() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = event.durationUi.orEmpty(),
+            color = Color(0xB2464545),
+            fontSize = 42.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -533,4 +584,9 @@ private fun EmptyContent(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+private fun eventItemHeight(duration: Long?): Dp {
+    val customHeight = duration?.let { it.toInt() / 25715 } ?: 0
+    return customHeight.dp
 }

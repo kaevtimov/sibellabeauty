@@ -117,7 +117,7 @@ private fun NavGraphBuilder.navigationGraph(
                 )
 
                 RegisterScreen -> RegisterScreen(
-                    onRegister = { navigationController.navigate(RegisterScreen.getPath()) },
+                    onRegister = { navigationController.popBackStack() },
                     navigateBack = { navigationController.popBackStack() }
                 )
 

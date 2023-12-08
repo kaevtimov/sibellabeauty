@@ -193,6 +193,7 @@ android-library = { id = "com.android.library", version.ref = "androidPlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version = "1.7.20" }
 kotlin-gradle = { id = "org.jetbrains.kotlin:kotlin-gradle-plugin", version = "1.7.20" }
 firebase-crashlytics-gradle = { id = "com.google.firebase:firebase-crashlytics-gradle", version = "2.9.1" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version = "2.9.9" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.3.1" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.22.0" }
 jacoco = { id = "jacoco" }

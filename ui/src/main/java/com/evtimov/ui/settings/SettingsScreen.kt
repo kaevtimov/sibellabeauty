@@ -69,7 +69,7 @@ fun SettingsScreen(
     }
 
     Content(
-        onLogout = navigateToLogin
+        onLogout = { viewModel.logout() }
     )
     SbSnackBar(snackBarHostState = snackbarState)
 }

@@ -1,7 +1,7 @@
 package com.example.domain.model
 
 import com.example.data.event.EventFb
-import com.example.domain.DateTimeConvertionUseCase
+import com.example.domain.DateTimeUseCase
 
 class Event(
     var id: String? = "",
@@ -23,8 +23,8 @@ fun EventFb.mapToDomain() = Event(
     procedure = procedure,
     user = user,
     durationUi = timeLapseString,
-    dateUi = DateTimeConvertionUseCase().fromServerToDateUi(dateTime.orEmpty()),
-    timeUi = DateTimeConvertionUseCase().fromServerToTimeUi(dateTime.orEmpty())
+    dateUi = DateTimeUseCase().fromServerToDateUi(dateTime.orEmpty()),
+    timeUi = DateTimeUseCase().fromServerToTimeUi(dateTime.orEmpty())
 )
 
 fun Event.mapToData() = EventFb(

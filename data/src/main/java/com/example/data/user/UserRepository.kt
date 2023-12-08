@@ -1,5 +1,6 @@
 package com.example.data.user
 
+import android.util.Log
 import com.example.common.di.DeviceManagement
 import com.example.common.di.SecureStore
 import com.example.common.di.USER_KEY_VALUE
@@ -19,6 +20,13 @@ class UserRepository @Inject constructor(
 ) : IUserRepository {
 
     private val userDatabase = firebaseDatabase.child("users")
+    private val userFromCache: UserFb?
+        get() {
+            val userJson = secureStore.getString(USER_KEY_VALUE, "")
+            return Gson().fromJson(userJson, object : TypeToken<UserFb?>() {}.type)
+        }
+    private val currentDeviceId: String?
+        get() = deviceManagement.getDeviceId()
 
     override suspend fun register(user: UserFb): FirebaseResponse<Any> {
         firebaseDatabase.keepSynced(true)
@@ -34,43 +42,30 @@ class UserRepository @Inject constructor(
     }
 
     override suspend fun getAllUsers(): List<UserFb> {
-        var users = emptyList<UserFb>()
+        var users: List<UserFb> = emptyList()
         try {
             users = userDatabase
                 .get()
-                .addOnCanceledListener {
-                    print("ERROR!")
-                }
-                .addOnFailureListener {
-                    print("ERROR!")
-                }
-                .addOnCompleteListener {
-                    print("ERROR!")
-                }
-                .await().children.mapNotNull { doc ->
-                doc.getValue(UserFb::class.java)
-            }
+                .await().children.mapNotNull { doc -> doc.getValue(UserFb::class.java) }
         } catch (exception: Exception) {
-            // TODO
-            print(exception)
+            Log.e("UserRepository", exception.message.orEmpty())
         }
         return users
     }
 
     override suspend fun getLoggedInUserForDevice(): UserFb? {
-        val userJson = secureStore.getString(USER_KEY_VALUE, "")
-        val loggedInUser = Gson().fromJson<UserFb>(userJson, object : TypeToken<UserFb?>() {}.type) ?: getAllUsers().firstOrNull {
-            it.loginState == true
-                    && it.logInDeviceIds?.split(USER_DEVICE_IDS_SPLIT_DELIMETER)?.contains(
-                deviceManagement.getDeviceId()
-            ) == true
-        }
+        val loggedInUser: UserFb? =
+            userFromCache ?: getAllUsers().firstOrNull {
+                it.loginState == true &&
+                        it.logInDeviceIds?.split(USER_DEVICE_IDS_SPLIT_DELIMETER)
+                            ?.contains(currentDeviceId) == true
+            }
         return loggedInUser
     }
 
     override suspend fun loginUser(user: UserFb): FirebaseResponse<Any> {
         firebaseDatabase.keepSynced(true)
-        val newDeviceIdsValue = user.logInDeviceIds.plus("|${deviceManagement.getDeviceId()}")
+        val newDeviceIdsValue = user.logInDeviceIds.plus("|$currentDeviceId")
         secureStore.putString(USER_KEY_VALUE, Gson().toJson(user))
         return safeCall {
             userDatabase.child(user.id!!).child("loginState").setValue(true)
@@ -82,16 +77,17 @@ class UserRepository @Inject constructor(
     }
 
     override suspend fun logoutUser(): FirebaseResponse<Any> {
-        val userJson = secureStore.getString(USER_KEY_VALUE, "") ?: return FirebaseResponse.Error("Error.")
-        val user = Gson().fromJson<UserFb>(userJson, object : TypeToken<UserFb?>() {}.type) ?: return FirebaseResponse.Error("Error.")
-        val newDeviceIdsValue = user.logInDeviceIds?.replace("|${deviceManagement.getDeviceId()}", "")
+        val loggedInUser = userFromCache
+            ?: return FirebaseResponse.Error("Error while logging out! User cannot be retrieved from cache.")
+        val newDeviceIdsValue = loggedInUser.logInDeviceIds?.replace("|$currentDeviceId", "")
 
         firebaseDatabase.keepSynced(true)
 
         return safeCall {
-            userDatabase.child(user.id!!).child("loginState").setValue(false)
+            userDatabase.child(loggedInUser.id!!).child("loginState").setValue(false)
                 .await()
-            userDatabase.child(user.id!!).child("logInDeviceIds").setValue(newDeviceIdsValue)
+            userDatabase.child(loggedInUser.id!!).child("logInDeviceIds")
+                .setValue(newDeviceIdsValue)
                 .await()
             secureStore.remove(USER_KEY_VALUE)
             FirebaseResponse.Success(Unit)

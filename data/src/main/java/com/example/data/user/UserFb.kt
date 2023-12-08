@@ -5,5 +5,6 @@ data class UserFb(
     val username: String? = "",
     val password: String? = "",
     val loginState: Boolean? = false,
-    val logInDeviceIds: String? = ""
+    val logInDeviceIds: String? = "",
+    val isAdmin: Boolean = false
 )

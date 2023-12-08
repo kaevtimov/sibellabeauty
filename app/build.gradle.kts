@@ -4,6 +4,7 @@ plugins {
     id("com.google.gms.google-services")
     kotlin("kapt")
     id("com.google.dagger.hilt.android")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -60,6 +61,7 @@ dependencies {
     implementation(platform(libs.google.firebase.bom))
     implementation(libs.google.firebase.installations)
     implementation(libs.google.firebase.common)
+    implementation(libs.google.firebase.crashlytics)
     implementation(libs.bundles.compose)
     implementation(libs.androidx.splashscreen)
     implementation(libs.compose.accompanist.systemcontroller)

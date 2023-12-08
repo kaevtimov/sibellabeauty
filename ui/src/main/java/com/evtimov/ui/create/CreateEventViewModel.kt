@@ -9,7 +9,7 @@ import com.example.domain.user.GetLoggedInUserUseCase
 import com.example.domain.Outcome
 import com.example.domain.model.Event
 import com.evtimov.ui.di.IODispatcher
-import com.example.domain.DateTimeConvertionUseCase
+import com.example.domain.DateTimeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,7 +29,7 @@ import javax.inject.Inject
 class CreateEventViewModel @Inject constructor(
     private val createEventUseCase: CreateEventUseCase,
     private val getLoggedUser: GetLoggedInUserUseCase,
-    private val dateTimeConvertionUseCase: DateTimeConvertionUseCase,
+    private val dateTimeConvertionUseCase: DateTimeUseCase,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
@@ -171,6 +171,6 @@ data class CreateEventUiState(
     val loggedInUsername: String = "",
     val procedureDurations: List<String> = Constants.procedureDurations.keys.toList(),
     val duration: String = procedureDurations[0],
-    val selectedEventTimeUi: String = DateTimeConvertionUseCase().toCurrentUiDateTime(),
-    val selectedEventDateUi: String = DateTimeConvertionUseCase().toCurrentUiDate()
+    val selectedEventTimeUi: String = DateTimeUseCase().toCurrentUiDateTime(),
+    val selectedEventDateUi: String = DateTimeUseCase().toCurrentUiDate()
 )

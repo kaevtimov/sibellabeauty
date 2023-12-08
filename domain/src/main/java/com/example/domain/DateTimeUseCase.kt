@@ -1,5 +1,6 @@
 package com.example.domain
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -7,7 +8,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
-class DateTimeConvertionUseCase @Inject constructor() {
+class DateTimeUseCase @Inject constructor() {
 
     fun fromServerToDateUi(dateTimeUiServer: String): String {
         val rawServerDate = serverStringToServerDate(dateTimeUiServer)
@@ -22,6 +23,17 @@ class DateTimeConvertionUseCase @Inject constructor() {
     fun formatTimeLapseUi(dateRaw: LocalDateTime, duration: Long): String {
         val end = dateRaw.plus(duration, ChronoUnit.MILLIS)
         return "${toUiTime(dateRaw)}-${toUiTime(end)}"
+    }
+
+    fun formatTimeLapseUi(startMillis: Long, duration: Long): String {
+        val endMillis = startMillis + duration
+        return "${toUiTime(LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(startMillis),
+            ZoneId.systemDefault()
+        ))}-${toUiTime(LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(endMillis),
+            ZoneId.systemDefault()
+        ))}"
     }
 
     fun nextDay(fromUiDate: String) = LocalDate.parse(
@@ -86,6 +98,13 @@ class DateTimeConvertionUseCase @Inject constructor() {
     fun toServerDateTimeString(date: LocalDateTime): String = date.format(
         DateTimeFormatter.ofPattern(
             SERVER_DATE_TIME_FORMATTER
+        )
+    )
+
+    fun toServerDateTimeString(millis: Long): String = toServerDateTimeString(
+        LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(millis),
+            ZoneId.systemDefault()
         )
     )
 

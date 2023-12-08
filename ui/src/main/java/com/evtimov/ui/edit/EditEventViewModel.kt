@@ -7,7 +7,7 @@ import com.evtimov.ui.Constants
 import com.evtimov.ui.Constants.procedureDurations
 import com.evtimov.ui.EditScreen
 import com.evtimov.ui.di.IODispatcher
-import com.example.domain.DateTimeConvertionUseCase
+import com.example.domain.DateTimeUseCase
 import com.example.domain.event.EditEventUseCase
 import com.example.domain.event.GetEventUseCase
 import com.example.domain.Outcome
@@ -28,7 +28,7 @@ class EditEventViewModel @Inject constructor(
     private val editEventUseCase: EditEventUseCase,
     private val getEventUseCase: GetEventUseCase,
     savedStateHandle: SavedStateHandle,
-    private val dateTimeConvertionUseCase: DateTimeConvertionUseCase,
+    private val dateTimeConvertionUseCase: DateTimeUseCase,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
@@ -101,7 +101,13 @@ class EditEventViewModel @Inject constructor(
                     )
                 }
 
-                is Outcome.Failure -> _uiState.update { it.copy(isLoading = false) }
+                is Outcome.Failure -> _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = result.error
+                    )
+                }
+
                 is Outcome.Loading -> _uiState.update { it.copy(isLoading = true) }
             }
         }
@@ -117,7 +123,9 @@ class EditEventViewModel @Inject constructor(
         durationUi = dateTimeConvertionUseCase.formatTimeLapseUi(
             dateRaw = _uiState.value.selectedEventDate,
             duration = procedureDurations.getOrDefault(_uiState.value.duration, 0L)
-        )
+        ),
+        dateUi = _uiState.value.selectedEventDateUi,
+        timeUi = _uiState.value.selectedEventTimeUi
     )
 
     fun consumeError() = _uiState.update {

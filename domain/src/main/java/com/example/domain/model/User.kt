@@ -7,7 +7,8 @@ data class User(
     val username: String? = "",
     val password: String? = "",
     val loginState: Boolean? = false,
-    val logInDeviceIds: String? = ""
+    val logInDeviceIds: String? = "",
+    val isAdmin: Boolean = false
 )
 
 fun UserFb.mapToDomain() = User(
@@ -15,5 +16,6 @@ fun UserFb.mapToDomain() = User(
     username = username,
     password = password,
     loginState = loginState,
-    logInDeviceIds = logInDeviceIds
+    logInDeviceIds = logInDeviceIds,
+    isAdmin = isAdmin
 )
